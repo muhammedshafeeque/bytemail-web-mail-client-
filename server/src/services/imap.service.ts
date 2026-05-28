@@ -252,6 +252,44 @@ export async function syncFolder(
   page = 1,
   limit = 25
 ): Promise<{ emails: FetchedEmail[]; total: number }> {
+  if (normalizeFolderName(folder) === 'starred') {
+    const client = await getImapClient(userEmail, password);
+    const lock = await client.getMailboxLock('INBOX');
+
+    try {
+      const starred = await client.search({ flagged: true }, { uid: true });
+      const allUids = (Array.isArray(starred) ? starred : []).sort((a, b) => b - a);
+      const total = allUids.length;
+
+      if (total === 0) {
+        return { emails: [], total: 0 };
+      }
+
+      const pageUids = allUids.slice((page - 1) * limit, page * limit);
+      const emails: FetchedEmail[] = [];
+
+      for (const uid of pageUids) {
+        const parsed = await fetchSingleEmailBody(client, uid.toString(), 'Starred');
+        if (parsed) {
+          emails.push(parsed);
+          await EmailCache.findOneAndUpdate(
+            { user_email: userEmail, uid: uid.toString(), folder: 'Starred' },
+            { ...parsed, folder: 'Starred', user_email: userEmail, cached_at: new Date() },
+            { upsert: true, new: true }
+          );
+        }
+      }
+
+      const redis = getRedis();
+      const cacheKey = `emails:${userEmail}:${folder}:page:${page}`;
+      await redis.setex(cacheKey, 180, JSON.stringify({ emails, total }));
+
+      return { emails, total };
+    } finally {
+      lock.release();
+    }
+  }
+
   let lock: MailboxLockObject | null = null;
 
   try {
