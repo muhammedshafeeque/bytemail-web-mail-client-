@@ -8,6 +8,62 @@ import { simpleParser } from 'mailparser';
 const pool = new Map<string, ImapFlow>();
 const MAX_POOL = 50;
 
+function normalizeFolderName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function hasSpecialUse(folder: unknown, specialUse: string): boolean {
+  const su = (folder as { specialUse?: string | string[] }).specialUse;
+  if (!su) return false;
+  if (Array.isArray(su)) return su.includes(specialUse);
+  return su === specialUse;
+}
+
+async function resolveFolderPath(client: ImapFlow, requestedFolder: string): Promise<string> {
+  const wanted = normalizeFolderName(requestedFolder);
+  if (wanted === 'inbox') return 'INBOX';
+
+  const folderList = await client.list();
+
+  // Exact match by path or name (case-insensitive).
+  const exact = folderList.find((f) =>
+    normalizeFolderName(f.path) === wanted || normalizeFolderName(f.name) === wanted
+  );
+  if (exact) return exact.path;
+
+  // Common aliases (Gmail/Dovecot/other IMAP servers).
+  const aliases: Record<string, RegExp> = {
+    sent: /(^|[./\s_-])sent([./\s_-]|$)|sent\s*items?/i,
+    drafts: /(^|[./\s_-])drafts?([./\s_-]|$)/i,
+    spam: /(^|[./\s_-])(spam|junk)([./\s_-]|$)/i,
+    trash: /(^|[./\s_-])(trash|bin|deleted)([./\s_-]|$)/i,
+    archive: /(^|[./\s_-])archive([./\s_-]|$)|all\s*mail/i,
+    starred: /(^|[./\s_-])(starred|flagged)([./\s_-]|$)/i,
+  };
+
+  const specialUseMap: Record<string, string> = {
+    sent: '\\Sent',
+    drafts: '\\Drafts',
+    spam: '\\Junk',
+    trash: '\\Trash',
+    archive: '\\Archive',
+  };
+
+  const specialUse = specialUseMap[wanted];
+  if (specialUse) {
+    const bySpecialUse = folderList.find((f) => hasSpecialUse(f, specialUse));
+    if (bySpecialUse) return bySpecialUse.path;
+  }
+
+  const byAlias = aliases[wanted]
+    ? folderList.find((f) => aliases[wanted].test(f.path) || aliases[wanted].test(f.name))
+    : undefined;
+  if (byAlias) return byAlias.path;
+
+  // Fallback to requested value if server supports it directly.
+  return requestedFolder;
+}
+
 export function buildImapConfig(email: string, password: string): ImapFlowOptions {
   return {
     host: env.IMAP_HOST,
@@ -200,7 +256,8 @@ export async function syncFolder(
 
   try {
     const client = await getImapClient(userEmail, password);
-    lock = await client.getMailboxLock(folder);
+    const resolvedFolder = await resolveFolderPath(client, folder);
+    lock = await client.getMailboxLock(resolvedFolder);
 
     const mailbox = client.mailbox;
     const total = (mailbox as { exists?: number })?.exists ?? 0;
@@ -281,7 +338,8 @@ export async function fetchEmailByUid(
   }
 
   const client = await getImapClient(userEmail, password);
-  const lock = await client.getMailboxLock(folder);
+  const resolvedFolder = await resolveFolderPath(client, folder);
+  const lock = await client.getMailboxLock(resolvedFolder);
   try {
     const result = await fetchSingleEmailBody(client, uid, folder);
     if (result) {
@@ -306,7 +364,8 @@ export async function markEmailRead(
   isRead: boolean
 ): Promise<void> {
   const client = await getImapClient(userEmail, password);
-  const lock = await client.getMailboxLock(folder);
+  const resolvedFolder = await resolveFolderPath(client, folder);
+  const lock = await client.getMailboxLock(resolvedFolder);
   try {
     if (isRead) {
       await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true });
@@ -330,7 +389,8 @@ export async function toggleStar(
   star: boolean
 ): Promise<void> {
   const client = await getImapClient(userEmail, password);
-  const lock = await client.getMailboxLock(folder);
+  const resolvedFolder = await resolveFolderPath(client, folder);
+  const lock = await client.getMailboxLock(resolvedFolder);
   try {
     if (star) {
       await client.messageFlagsAdd(uid, ['\\Flagged'], { uid: true });
@@ -353,9 +413,11 @@ export async function moveEmail(
   toFolder: string
 ): Promise<void> {
   const client = await getImapClient(userEmail, password);
-  const lock = await client.getMailboxLock(fromFolder);
+  const resolvedFrom = await resolveFolderPath(client, fromFolder);
+  const resolvedTo = await resolveFolderPath(client, toFolder);
+  const lock = await client.getMailboxLock(resolvedFrom);
   try {
-    await client.messageMove(uid, toFolder, { uid: true });
+    await client.messageMove(uid, resolvedTo, { uid: true });
     await EmailCache.deleteOne({ user_email: userEmail, uid, folder: fromFolder });
     const redis = getRedis();
     await redis.del(`email:${userEmail}:uid:${uid}`);
@@ -374,7 +436,8 @@ export async function deleteEmail(
 ): Promise<void> {
   if (folder.toLowerCase() === 'trash') {
     const client = await getImapClient(userEmail, password);
-    const lock = await client.getMailboxLock(folder);
+    const resolvedFolder = await resolveFolderPath(client, folder);
+    const lock = await client.getMailboxLock(resolvedFolder);
     try {
       await client.messageFlagsAdd(uid, ['\\Deleted'], { uid: true });
       await client.messageDelete(uid, { uid: true });
