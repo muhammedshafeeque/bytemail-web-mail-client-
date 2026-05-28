@@ -1,6 +1,7 @@
 import nodemailer, { Transporter } from 'nodemailer';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { getRedis } from '../config/redis';
 
 let transporter: Transporter | null = null;
 
@@ -30,10 +31,32 @@ export interface SendEmailOptions {
   text?: string;
   attachments?: Array<{ filename: string; path: string }>;
   reply_to?: string;
+  userEmail?: string;
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<string> {
-  const t = getTransporter();
+  let smtpUser = env.SMTP_USER;
+  let smtpPass = env.SMTP_PASS;
+
+  // Prefer logged-in user's mailbox creds stored at login.
+  if (options.userEmail) {
+    const userPass = await getRedis().get(`imap:${options.userEmail}`);
+    if (userPass) {
+      smtpUser = options.userEmail;
+      smtpPass = userPass;
+    }
+  }
+
+  const t = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    tls: { rejectUnauthorized: false },
+  });
 
   const info = await t.sendMail({
     from: options.from,

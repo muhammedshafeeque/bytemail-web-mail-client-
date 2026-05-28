@@ -79,6 +79,7 @@ export async function sendEmailHandler(req: Request, res: Response): Promise<voi
     html,
     text: data.body_text,
     reply_to: data.reply_to,
+    userEmail: user.email,
   });
 
   const allRecipients = [...data.to, ...(data.cc ?? [])];
