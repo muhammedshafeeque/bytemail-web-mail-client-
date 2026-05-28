@@ -20,7 +20,7 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
 
   return (
     <div
-      className={cn('relative inline-flex', className)}
+      className={cn('relative', className ?? 'inline-flex')}
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
     >

@@ -42,9 +42,12 @@ export function Sidebar() {
       transition={{ duration: 0.2, ease: 'easeInOut' }}
       className="flex flex-col h-full bg-white dark:bg-[#1f1f1f] flex-shrink-0 overflow-hidden"
     >
-      {/* Compose button — first thing below the header */}
       <div className={cn('pt-3 pb-1', sidebarCollapsed ? 'px-3 flex justify-center' : 'px-3')}>
-        <Tooltip content={sidebarCollapsed ? 'Compose' : ''} side="right">
+        <Tooltip
+          content={sidebarCollapsed ? 'Compose' : ''}
+          side="right"
+          className={sidebarCollapsed ? 'inline-flex' : 'flex w-full'}
+        >
           <button
             onClick={newCompose}
             className={cn(
@@ -62,36 +65,38 @@ export function Sidebar() {
         </Tooltip>
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto mt-1">
+      <nav className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden mt-1 min-w-0">
         {NAV_ITEMS.map(({ icon: Icon, label, folder }) => {
           const count = getCount(folder);
           const isActive = selectedFolder === folder;
 
           return (
-            <Tooltip key={folder} content={sidebarCollapsed ? label : ''} side="right">
+            <Tooltip
+              key={folder}
+              content={sidebarCollapsed ? label : ''}
+              side="right"
+              className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
+            >
               <button
                 onClick={() => setSelectedFolder(folder)}
                 className={cn(
-                  'relative flex items-center w-full transition-colors duration-150 select-none',
+                  'relative flex items-center min-w-0 transition-colors duration-150 select-none',
                   sidebarCollapsed
-                    ? 'justify-center py-3 px-2 my-0.5 mx-2 rounded-2xl'
-                    : 'gap-4 py-2.5 pl-6 pr-4 my-0.5',
-                  // Active: pill style (rounded right side, like Gmail)
+                    ? 'justify-center py-3 px-2 my-0.5 mx-2 rounded-2xl w-12'
+                    : 'gap-4 w-full py-2.5 pl-6 pr-4 my-0.5',
                   isActive
                     ? sidebarCollapsed
                       ? 'bg-[#d3e3fd] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] font-semibold'
                       : 'bg-[#d3e3fd] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] font-semibold rounded-r-full'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-normal rounded-r-full'
                 )}
-                style={!sidebarCollapsed ? { marginRight: '16px' } : { width: '48px', margin: '2px auto' }}
               >
                 <Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-[#001d35] dark:text-[#c2e7ff]' : 'text-gray-600 dark:text-gray-400')} />
                 {!sidebarCollapsed && (
                   <>
-                    <span className="flex-1 text-left text-sm">{label}</span>
+                    <span className="flex-1 text-left text-sm truncate">{label}</span>
                     {count > 0 && (
-                      <span className="text-xs font-semibold ml-auto">{count}</span>
+                      <span className="text-xs font-semibold flex-shrink-0">{count}</span>
                     )}
                   </>
                 )}
@@ -104,18 +109,20 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom: settings + user */}
-      <div className="border-t border-gray-100 dark:border-gray-800 py-2 flex-shrink-0">
-        <Tooltip content={sidebarCollapsed ? 'Settings' : ''} side="right">
+      <div className="border-t border-gray-100 dark:border-gray-800 py-2 flex-shrink-0 flex flex-col min-w-0">
+        <Tooltip
+          content={sidebarCollapsed ? 'Settings' : ''}
+          side="right"
+          className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
+        >
           <Link
             to="/settings"
             className={cn(
-              'flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors py-2.5 select-none',
+              'flex items-center min-w-0 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors py-2.5 select-none',
               sidebarCollapsed
-                ? 'justify-center px-2 mx-auto rounded-2xl'
-                : 'pl-6 pr-4 rounded-r-full'
+                ? 'justify-center px-2 mx-2 rounded-2xl w-12'
+                : 'gap-4 w-full pl-6 pr-4 rounded-r-full'
             )}
-            style={!sidebarCollapsed ? { marginRight: '16px' } : { width: '48px', margin: '2px auto' }}
           >
             <Settings className="h-5 w-5 flex-shrink-0 text-gray-600 dark:text-gray-400" />
             {!sidebarCollapsed && <span>Settings</span>}
@@ -123,24 +130,29 @@ export function Sidebar() {
         </Tooltip>
 
         {user && (
-          <div
-            className={cn(
-              'flex items-center gap-3 py-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none',
-              sidebarCollapsed
-                ? 'justify-center px-2 mx-auto rounded-2xl'
-                : 'pl-6 pr-4 rounded-r-full'
-            )}
-            style={!sidebarCollapsed ? { marginRight: '16px' } : { width: '48px', margin: '2px auto' }}
-            onClick={() => navigate('/settings')}
+          <Tooltip
+            content={sidebarCollapsed ? user.name : ''}
+            side="right"
+            className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
           >
-            <Avatar name={user.name} email={user.email} color={user.avatar_color} size="sm" />
-            {!sidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
-                <p className="text-xs text-gray-400 truncate">{user.email}</p>
-              </div>
-            )}
-          </div>
+            <div
+              className={cn(
+                'flex items-center min-w-0 py-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none',
+                sidebarCollapsed
+                  ? 'justify-center px-2 mx-2 rounded-2xl w-12'
+                  : 'gap-3 w-full pl-6 pr-4 rounded-r-full'
+              )}
+              onClick={() => navigate('/settings')}
+            >
+              <Avatar name={user.name} email={user.email} color={user.avatar_color} size="sm" />
+              {!sidebarCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+              )}
+            </div>
+          </Tooltip>
         )}
       </div>
     </motion.aside>
