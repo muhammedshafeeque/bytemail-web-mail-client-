@@ -7,7 +7,7 @@ import { AttachmentList } from './AttachmentList';
 import { EmailViewerSkeleton } from '@/components/ui/Skeleton';
 import { sanitizeHtml } from '@/utils/sanitizeHtml';
 import { formatFullDate } from '@/utils/formatDate';
-import { formatRecipientList } from '@/utils/emailHelpers';
+import { formatRecipientList, getSenderLabel } from '@/utils/emailHelpers';
 import { useEmailStore } from '@/store/emailStore';
 import { useUiStore } from '@/store/uiStore';
 import { useState } from 'react';
@@ -86,7 +86,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {email.from.name || email.from.email || 'Unknown sender'}
+                        {getSenderLabel(email)}
                       </span>
                       {email.from.email && (
                         <span className="text-sm text-gray-500 dark:text-gray-400">

@@ -91,6 +91,16 @@ interface WdMessage {
   to?: WdAddress | WdAddress[] | string;
   cc?: WdAddress | WdAddress[] | string;
   envelope?: { from?: string; to?: string[] };
+  meta?: { from?: string; to?: string[] };
+  headers?: Array<{ key?: string; value?: string }>;
+  mimeTree?: {
+    parsedHeader?: {
+      from?: unknown;
+      sender?: unknown;
+      to?: unknown;
+      cc?: unknown;
+    };
+  };
   date?: Date;
   idate?: Date;
   intro?: string;
@@ -119,8 +129,21 @@ function toObjectId(id: string): Types.ObjectId {
   return new Types.ObjectId(id);
 }
 
+function stringifyHeader(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) return value.toString();
+  if (Array.isArray(value)) return value.map(stringifyHeader).filter(Boolean).join(', ');
+  if (typeof value === 'object') {
+    const obj = value as { text?: unknown; value?: unknown };
+    if (obj.text) return stringifyHeader(obj.text);
+    if (obj.value) return stringifyHeader(obj.value);
+  }
+  return String(value);
+}
+
 function parseAddressString(raw: string): { name: string; email: string } {
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().replace(/\s+/g, ' ');
   const angled = trimmed.match(/^(?:"?([^"<]*)"?\s*)?<\s*([^>]+)\s*>$/);
   if (angled) {
     return { name: angled[1].trim(), email: angled[2].trim().toLowerCase() };
@@ -130,7 +153,10 @@ function parseAddressString(raw: string): { name: string; email: string } {
 }
 
 function asAddressList(value: unknown): { name: string; email: string }[] {
-  if (!value) return [];
+  if (value == null || value === '') return [];
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
+    return asAddressList(value.toString());
+  }
   if (typeof value === 'string') {
     const parsed = parseAddressString(value);
     return parsed.name || parsed.email ? [parsed] : [];
@@ -139,20 +165,63 @@ function asAddressList(value: unknown): { name: string; email: string }[] {
     return value.flatMap((item) => asAddressList(item));
   }
   if (typeof value === 'object') {
-    const obj = value as WdAddress;
-    if (obj.value) return asAddressList(obj.value);
+    const obj = value as WdAddress & { text?: unknown };
+    if (obj.value != null && obj.value !== '') return asAddressList(obj.value);
     const email = String(obj.address || obj.email || obj.addr || '').trim().toLowerCase();
     const name = String(obj.name || '').trim();
-    if (!email && !name) return [];
-    return [{ name, email }];
+    if (email || name) return [{ name, email }];
+    if (obj.text) return asAddressList(obj.text);
   }
   return [];
 }
 
+function headerLine(msg: WdMessage, key: string): string | undefined {
+  const wanted = key.toLowerCase();
+  const headers = msg.headers as unknown;
+  if (Array.isArray(headers)) {
+    const hit = headers.find((h) => {
+      if (!h || typeof h !== 'object') return false;
+      const row = h as { key?: string; name?: string };
+      return (row.key || row.name || '').toLowerCase() === wanted;
+    }) as { value?: unknown } | undefined;
+    const text = stringifyHeader(hit?.value);
+    return text || undefined;
+  }
+  if (headers && typeof headers === 'object') {
+    const map = headers as Record<string, unknown>;
+    const matchKey = Object.keys(map).find((k) => k.toLowerCase() === wanted);
+    const text = matchKey ? stringifyHeader(map[matchKey]) : '';
+    return text || undefined;
+  }
+  return undefined;
+}
+
 function mapFrom(msg: WdMessage): { name: string; email: string } {
+  const parsed = msg.mimeTree?.parsedHeader;
   return asAddressList(msg.from)[0]
+    ?? asAddressList(parsed?.from)[0]
+    ?? asAddressList(parsed?.sender)[0]
+    ?? asAddressList(headerLine(msg, 'from'))[0]
+    ?? asAddressList(headerLine(msg, 'sender'))[0]
+    ?? asAddressList(msg.meta?.from)[0]
     ?? asAddressList(msg.envelope?.from)[0]
     ?? { name: '', email: '' };
+}
+
+function mapTo(msg: WdMessage): { name: string; email: string }[] {
+  const parsed = asAddressList(msg.to);
+  if (parsed.length) return parsed;
+  const headerTo = asAddressList(msg.mimeTree?.parsedHeader?.to);
+  if (headerTo.length) return headerTo;
+  return asAddressList(headerLine(msg, 'to'));
+}
+
+function mapCc(msg: WdMessage): { name: string; email: string }[] {
+  const parsed = asAddressList(msg.cc);
+  if (parsed.length) return parsed;
+  const headerCc = asAddressList(msg.mimeTree?.parsedHeader?.cc);
+  if (headerCc.length) return headerCc;
+  return asAddressList(headerLine(msg, 'cc'));
 }
 
 function htmlFromMessage(msg: WdMessage): string {
@@ -238,8 +307,8 @@ function mapListEmail(msg: WdMessage, folderKey: string, mailboxId: string): Fet
     message_id: msg.messageId ?? '',
     thread_id: msg.thread?.toString() ?? String(msg.uid),
     from: mapFrom(msg),
-    to: asAddressList(msg.to),
-    cc: asAddressList(msg.cc),
+    to: mapTo(msg),
+    cc: mapCc(msg),
     subject: msg.subject ?? '(no subject)',
     preview: (msg.intro ?? '').replace(/\s+/g, ' ').trim().substring(0, 150),
     body_html: '',
@@ -264,6 +333,12 @@ const LIST_PROJECTION = {
   to: 1,
   cc: 1,
   envelope: 1,
+  meta: 1,
+  headers: 1,
+  'mimeTree.parsedHeader.from': 1,
+  'mimeTree.parsedHeader.sender': 1,
+  'mimeTree.parsedHeader.to': 1,
+  'mimeTree.parsedHeader.cc': 1,
   date: 1,
   idate: 1,
   intro: 1,
@@ -280,7 +355,7 @@ export async function fetchEmails(
   limit = 25,
 ): Promise<{ emails: FetchedEmail[]; total: number }> {
   const redis = getRedis();
-  const cacheKey = `emails:${wdUserId}:${folder}:page:${page}:${limit}`;
+  const cacheKey = `emails:${wdUserId}:v2:${folder}:page:${page}:${limit}`;
   const cached = await redis.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached) as { emails: FetchedEmail[]; total: number }; } catch { /* ignore */ }
@@ -342,8 +417,8 @@ export async function syncFolder(
   limit = 25,
 ): Promise<{ emails: FetchedEmail[]; total: number }> {
   const redis = getRedis();
-  await redis.del(`emails:${wdUserId}:${folder}:page:${page}:${limit}`);
-  const keys = await redis.keys(`emails:${wdUserId}:${folder}:*`);
+  await redis.del(`emails:${wdUserId}:v2:${folder}:page:${page}:${limit}`);
+  const keys = await redis.keys(`emails:${wdUserId}:*`);
   if (keys.length) await redis.del(...keys);
   return fetchEmails(wdUserId, folder, page, limit);
 }
@@ -393,7 +468,7 @@ export async function fetchEmailByUid(
   token?: string,
 ): Promise<FetchedEmail | null> {
   const redis = getRedis();
-  const cacheKey = `email:${wdUserId}:uid:${uid}`;
+  const cacheKey = `email:${wdUserId}:v2:uid:${uid}`;
   const cached = await redis.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached) as FetchedEmail; } catch { /* ignore */ }
@@ -529,6 +604,10 @@ export async function searchEmails(
       { text: regex },
       { 'from.address': regex },
       { 'from.name': regex },
+      { 'mimeTree.parsedHeader.from.address': regex },
+      { 'mimeTree.parsedHeader.from.name': regex },
+      { 'headers.value': regex },
+      { 'meta.from': regex },
     ],
   };
 
@@ -664,8 +743,12 @@ async function readGridFsAttachment(
 export async function invalidateMailCache(wdUserId: string, extraUids: string[] = []): Promise<void> {
   const redis = getRedis();
   const keys = await redis.keys(`emails:${wdUserId}:*`);
-  const extra = extraUids.map((uid) => `email:${wdUserId}:uid:${uid}`);
+  const detailKeys = await redis.keys(`email:${wdUserId}:*`);
+  const extra = extraUids.flatMap((uid) => [
+    `email:${wdUserId}:uid:${uid}`,
+    `email:${wdUserId}:v2:uid:${uid}`,
+  ]);
   const unread = `unread:${wdUserId}`;
-  const all = [...keys, ...extra, unread];
+  const all = [...keys, ...detailKeys, ...extra, unread];
   if (all.length) await redis.del(...all);
 }
