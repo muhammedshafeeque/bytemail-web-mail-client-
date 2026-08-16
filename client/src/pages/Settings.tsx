@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, User, Palette, PenLine, Bell, Keyboard, Shield, KeyRound } from 'lucide-react';
+import { ArrowLeft, User, Palette, PenLine, Bell, Keyboard, Shield, KeyRound, LayoutDashboard } from 'lucide-react';
 import { ApiKeysPanel } from '@/components/settings/ApiKeysPanel';
 import { AccountPanel } from '@/components/settings/AccountPanel';
 import { Link } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '@/components/compose/RichTextEditor';
 import { useAuthStore } from '@/store/authStore';
+import { userIsAdmin } from '@/utils/admin';
 import { Avatar } from '@/components/ui/Avatar';
 import api from '@/api/client';
 import toast from 'react-hot-toast';
@@ -125,6 +126,18 @@ export function Settings() {
               {label}
             </button>
           ))}
+          {userIsAdmin(user) && (
+            <>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 mt-4 mb-2">Admin</p>
+              <Link
+                to="/admin"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Platform
+              </Link>
+            </>
+          )}
         </aside>
 
         <main className="flex-1 overflow-y-auto min-w-0">

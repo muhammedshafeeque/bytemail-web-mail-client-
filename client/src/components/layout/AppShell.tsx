@@ -6,6 +6,7 @@ import { ComposeModal } from '@/components/compose/ComposeModal';
 import { SearchBar } from '@/components/search/SearchBar';
 import { Search, Settings, Menu, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { userIsAdmin } from '@/utils/admin';
 import { Avatar } from '@/components/ui/Avatar';
 import { Link } from 'react-router-dom';
 
@@ -71,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
         </button>
 
         <div className="flex items-center gap-0.5 ml-auto">
-          {user?.is_admin && (
+          {userIsAdmin(user) && (
             <Link
               to="/admin"
               title="Platform"

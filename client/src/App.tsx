@@ -12,6 +12,7 @@ import { AdminDomains } from '@/pages/admin/AdminDomains';
 import { AdminDkim } from '@/pages/admin/AdminDkim';
 import { AdminAliases } from '@/pages/admin/AdminAliases';
 import { useMe } from '@/hooks/useAuth';
+import { userIsAdmin } from '@/utils/admin';
 import { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -24,8 +25,8 @@ function AdminRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuthStore();
   const { isLoading } = useMe();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.is_admin === undefined && isLoading) return null;
-  if (!user?.is_admin) return <Navigate to="/" replace />;
+  if (!user && isLoading) return null;
+  if (!userIsAdmin(user)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

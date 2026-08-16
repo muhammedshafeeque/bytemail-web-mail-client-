@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { User } from '../models/User.model';
+import { isAdminUser } from '../utils/admin';
 import { z } from 'zod';
 import { comparePassword, hashPassword } from '../utils/password';
 import {
@@ -52,7 +53,15 @@ router.put('/', asyncHandler(async (req: Request, res: Response) => {
   }
 
   const user = await User.findByIdAndUpdate(req.user!.userId, update, { new: true }).select('-password').lean();
-  res.json({ success: true, data: user });
+  if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+  res.json({
+    success: true,
+    data: {
+      ...user,
+      role: user.role || 'user',
+      is_admin: isAdminUser(user),
+    },
+  });
 }));
 
 router.put('/password', asyncHandler(async (req: Request, res: Response) => {

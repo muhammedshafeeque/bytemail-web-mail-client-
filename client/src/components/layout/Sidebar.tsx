@@ -10,6 +10,7 @@ import { useCompose } from '@/hooks/useCompose';
 import { useFolders } from '@/hooks/useFolders';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useAuthStore } from '@/store/authStore';
+import { userIsAdmin } from '@/utils/admin';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/utils/cn';
 import { Folder } from '@/types/folder';
@@ -124,7 +125,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-stone-100 dark:border-zinc-800 py-2 flex-shrink-0 flex flex-col min-w-0 px-2">
-        {user?.is_admin && (
+        {userIsAdmin(user) && (
           <Tooltip
             content={sidebarCollapsed ? 'Platform' : ''}
             side="right"
