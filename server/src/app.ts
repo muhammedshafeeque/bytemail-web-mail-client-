@@ -42,6 +42,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', apiRateLimit);
 
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/emails', emailRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/contacts', contactRoutes);

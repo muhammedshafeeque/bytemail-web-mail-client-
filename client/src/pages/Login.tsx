@@ -13,7 +13,7 @@ import { cn } from '@/utils/cn';
 import { getStoredTheme, setStoredTheme, ThemeValue } from '@/hooks/useTheme';
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email address'),
+  email: z.string().min(1, 'Email or username is required'),
   password: z.string().min(1, 'Password is required'),
 });
 type FormData = z.infer<typeof schema>;
@@ -121,7 +121,7 @@ export function Login() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-stone-50 dark:bg-surface-dark relative overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-stone-50 dark:bg-zinc-950 relative overflow-hidden">
 
       <div className="relative hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-800 via-brand-900 to-zinc-950" />
@@ -247,7 +247,7 @@ export function Login() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 bg-stone-50 dark:bg-surface-dark relative">
+      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 bg-stone-50 dark:bg-zinc-950 relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 right-0 w-96 h-96 bg-brand-50 dark:bg-brand-950/20 rounded-full translate-x-1/2 -translate-y-1/2 blur-3xl opacity-60" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-50 dark:bg-teal-950/20 rounded-full -translate-x-1/2 translate-y-1/2 blur-3xl opacity-50" />
@@ -289,7 +289,7 @@ export function Login() {
                   Welcome back
                 </h2>
                 <p className="text-sm text-stone-500 dark:text-stone-400">
-                  Sign in with your repod.online credentials
+                  Sign in with your mailbox email or username
                 </p>
               </motion.div>
 
@@ -313,7 +313,7 @@ export function Login() {
                       {...register('email')}
                       type="email"
                       autoComplete="email"
-                      placeholder="you@repod.online"
+                      placeholder="username@repod.online"
                       onFocus={() => setFocusedField('email')}
                       onBlur={() => setFocusedField(null)}
                       className={cn(

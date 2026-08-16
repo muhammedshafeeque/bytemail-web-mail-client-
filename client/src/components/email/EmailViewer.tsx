@@ -32,7 +32,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
 
   if (!email) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-stone-50 dark:bg-surface-dark">
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-stone-50 dark:bg-zinc-950">
         <div className="h-20 w-20 rounded-full bg-white dark:bg-gray-900 shadow-lg flex items-center justify-center">
           <svg className="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -56,7 +56,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="flex flex-col h-full bg-stone-50 dark:bg-surface-dark overflow-hidden"
+      className="flex flex-col h-full bg-stone-50 dark:bg-zinc-950 overflow-hidden"
     >
       {/* Top toolbar strip */}
       <div className="flex items-center justify-between px-4 py-2 flex-shrink-0">

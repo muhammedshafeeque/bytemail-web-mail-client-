@@ -35,7 +35,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [setOffline]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-stone-50 dark:bg-surface-dark">
+    <div className="flex flex-col h-screen overflow-hidden bg-stone-50 dark:bg-zinc-950">
       {isOffline && (
         <div className="bg-amber-500 text-white text-xs font-medium text-center py-1.5 px-4 flex-shrink-0">
           You're offline — showing cached data

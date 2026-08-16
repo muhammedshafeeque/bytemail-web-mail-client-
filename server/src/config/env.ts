@@ -30,7 +30,7 @@ export const env = {
   REDIS_PASSWORD: optional('REDIS_PASSWORD', ''),
 
   WILDDUCK_MONGO_URI: optional('WILDDUCK_MONGO_URI', 'mongodb://localhost:27017/wildduck'),
-  WILDDUCK_API_URL: optional('WILDDUCK_API_URL', 'http://mail.repod.online'),
+  WILDDUCK_API_URL: optional('WILDDUCK_API_URL', 'http://127.0.0.1:8080'),
   WILDDUCK_ACCESS_TOKEN: optional('WILDDUCK_ACCESS_TOKEN', ''),
 
   MAIL_FROM: optional('MAIL_FROM', 'ByteMail <noreply@repod.online>'),

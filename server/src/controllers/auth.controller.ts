@@ -13,7 +13,7 @@ import {
 } from '../services/session.service';
 
 const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(1),
 });
 
@@ -55,7 +55,8 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   try {
     const wd = await authenticateUser(email, password);
-    const user = await findOrCreateUser(email, wd.id, wd.username);
+    const mailboxEmail = wd.address.includes('@') ? wd.address : email.toLowerCase();
+    const user = await findOrCreateUser(mailboxEmail, wd.id, wd.username);
     const payload = { userId: user._id.toString(), email: user.email };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
@@ -80,9 +81,14 @@ export async function login(req: Request, res: Response): Promise<void> {
       },
     });
   } catch (err) {
-    const status = err instanceof WildduckApiError ? Math.min(err.status, 401) : 401;
     logger.error('WildDuck login error', { error: (err as Error).message, email });
-    res.status(status === 401 ? 401 : 401).json({ success: false, message: 'Invalid email or password' });
+    const isAuthFail = err instanceof WildduckApiError && (err.status === 401 || err.status === 403);
+    res.status(isAuthFail ? 401 : 502).json({
+      success: false,
+      message: isAuthFail
+        ? 'Invalid email or password'
+        : 'Could not reach the mail server. Try again in a moment.',
+    });
   }
 }
 

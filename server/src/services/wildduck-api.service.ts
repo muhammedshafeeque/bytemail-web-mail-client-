@@ -16,6 +16,7 @@ export class WildduckApiError extends Error {
 export interface AuthenticateResult {
   id: string;
   username: string;
+  address: string;
   token: string;
 }
 
@@ -78,40 +79,38 @@ async function wildduckRequest<T>(path: string, options: RequestOptions = {}): P
     return res as unknown as T;
   }
 
-  const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string; message?: string };
+  const data = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    error?: string;
+    message?: string;
+    code?: string;
+    id?: string;
+  };
 
-  if (!res.ok || data.success === false) {
+  if (!res.ok || data.success === false || data.code === 'AuthFailed' || (data.error && !data.id)) {
     const message = data.error || data.message || `WildDuck request failed (${res.status})`;
-    logger.warn('WildDuck API error', { path, status: res.status, message });
-    throw new WildduckApiError(message, res.status || 500, data);
+    logger.warn('WildDuck API error', { path, status: res.status, message, code: data.code });
+    throw new WildduckApiError(message, res.status >= 400 ? res.status : 401, data);
   }
 
   return data as T;
 }
 
 export async function authenticateUser(username: string, password: string): Promise<AuthenticateResult> {
-  const payload = {
-    username,
-    password,
-    token: true,
-    scope: 'master',
-    protocol: 'bytemail',
-  };
-
-  const tryAuth = (skipToken: boolean) =>
-    wildduckRequest<{
-      success: boolean;
-      id: string;
-      username: string;
-      token?: string;
-    }>('/authenticate', { method: 'POST', skipToken, body: payload });
-
-  let data: { success: boolean; id: string; username: string; token?: string };
-  try {
-    data = await tryAuth(true);
-  } catch {
-    data = await tryAuth(false);
-  }
+  const data = await wildduckRequest<{
+    success: boolean;
+    id: string;
+    username: string;
+    address?: string;
+    token?: string;
+  }>('/authenticate', {
+    method: 'POST',
+    body: {
+      username,
+      password,
+      token: true,
+    },
+  });
 
   if (!data.id) {
     throw new WildduckApiError('WildDuck authentication did not return a user id', 401);
@@ -120,6 +119,7 @@ export async function authenticateUser(username: string, password: string): Prom
   return {
     id: data.id,
     username: data.username,
+    address: (data.address || username).toLowerCase(),
     token: data.token || env.WILDDUCK_ACCESS_TOKEN,
   };
 }

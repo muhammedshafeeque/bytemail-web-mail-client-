@@ -15,7 +15,7 @@
   }
 
   body {
-    @apply bg-stone-50 text-stone-900 dark:bg-surface-dark dark:text-stone-50;
+    @apply bg-stone-50 text-stone-900 dark:bg-zinc-950 dark:text-stone-50;
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
   }
