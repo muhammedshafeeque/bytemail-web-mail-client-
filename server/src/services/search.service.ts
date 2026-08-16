@@ -1,4 +1,4 @@
-import { EmailCache } from '../models/EmailCache.model';
+import { searchEmails as searchWildduck } from './wildduck-db.service';
 
 export interface SearchResult {
   emails: object[];
@@ -6,27 +6,11 @@ export interface SearchResult {
 }
 
 export async function searchEmails(
-  userEmail: string,
+  wdUserId: string,
   query: string,
   folder?: string,
   page = 1,
   limit = 25
 ): Promise<SearchResult> {
-  const filter: Record<string, unknown> = {
-    user_email: userEmail,
-    $text: { $search: query },
-  };
-
-  if (folder) filter.folder = folder;
-
-  const [emails, total] = await Promise.all([
-    EmailCache.find(filter, { score: { $meta: 'textScore' } })
-      .sort({ score: { $meta: 'textScore' }, date: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean(),
-    EmailCache.countDocuments(filter),
-  ]);
-
-  return { emails, total };
+  return searchWildduck(wdUserId, query, folder, page, limit);
 }

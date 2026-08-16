@@ -32,14 +32,12 @@ export const EmailListItem = memo(function EmailListItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'flex items-center h-[52px] px-2 cursor-pointer select-none border-b border-gray-100 dark:border-gray-800 transition-all duration-100',
+        'flex items-center h-[52px] px-2 cursor-pointer select-none border-b border-stone-100 dark:border-zinc-800/80 transition-all duration-100 relative',
         isSelected
-          ? 'bg-[#d3e3fd] dark:bg-[#1a3a5c] border-b-[#c2d8fb] dark:border-b-[#1a3a5c]'
+          ? 'bg-brand-50 dark:bg-brand-950/40 border-b-brand-100 dark:border-b-brand-900'
           : hovered
-          ? 'bg-gray-50 dark:bg-gray-800/50 shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
-          : !email.is_read
-          ? 'bg-white dark:bg-gray-950'
-          : 'bg-white dark:bg-gray-950'
+          ? 'bg-stone-50 dark:bg-zinc-800/50'
+          : 'bg-white dark:bg-zinc-950'
       )}
     >
       {/* Checkbox (on hover / selected) */}
@@ -77,8 +75,8 @@ export const EmailListItem = memo(function EmailListItem({
         className={cn(
           'flex-shrink-0 w-44 truncate text-sm mr-3',
           email.is_read
-            ? 'font-normal text-gray-600 dark:text-gray-400'
-            : 'font-bold text-gray-900 dark:text-gray-50'
+            ? 'font-normal text-stone-600 dark:text-stone-400'
+            : 'font-bold text-stone-900 dark:text-stone-50'
         )}
       >
         {email.from.name || email.from.email}
@@ -89,14 +87,14 @@ export const EmailListItem = memo(function EmailListItem({
         <span
           className={cn(
             email.is_read
-              ? 'font-normal text-gray-700 dark:text-gray-300'
-              : 'font-semibold text-gray-900 dark:text-gray-100'
+              ? 'font-normal text-stone-700 dark:text-stone-300'
+              : 'font-semibold text-stone-900 dark:text-stone-100'
           )}
         >
           {email.subject || '(no subject)'}
         </span>
         {email.preview && (
-          <span className="font-normal text-gray-400 dark:text-gray-500">
+          <span className="font-normal text-stone-400 dark:text-stone-500">
             {' – '}{email.preview}
           </span>
         )}
@@ -107,8 +105,8 @@ export const EmailListItem = memo(function EmailListItem({
         className={cn(
           'flex-shrink-0 text-xs ml-2 w-16 text-right',
           email.is_read
-            ? 'font-normal text-gray-500 dark:text-gray-500'
-            : 'font-semibold text-gray-800 dark:text-gray-200'
+            ? 'font-normal text-stone-500 dark:text-stone-500'
+            : 'font-semibold text-stone-800 dark:text-stone-200'
         )}
       >
         {formatEmailDate(email.date)}

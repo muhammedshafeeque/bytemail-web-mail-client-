@@ -1,5 +1,5 @@
 export type Theme = 'light' | 'dark' | 'system';
-export type AccentColor = 'indigo' | 'blue' | 'green' | 'rose' | 'orange';
+export type AccentColor = 'teal' | 'indigo' | 'blue' | 'green' | 'rose' | 'orange';
 export type Density = 'comfortable' | 'compact';
 export type ReplyPosition = 'top' | 'bottom';
 

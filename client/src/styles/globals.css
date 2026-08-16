@@ -14,14 +14,12 @@
     scroll-behavior: smooth;
   }
 
-  /* Default body — login page scrolls freely on mobile */
   body {
-    @apply bg-white text-gray-900 dark:bg-[#1f1f1f] dark:text-gray-50;
-    font-family: 'Google Sans', 'Inter', system-ui, sans-serif;
+    @apply bg-stone-50 text-stone-900 dark:bg-surface-dark dark:text-stone-50;
+    font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
   }
 
-  /* App shell mode — locked to viewport */
   body.app-shell {
     overflow: hidden;
     height: 100vh;
@@ -36,7 +34,6 @@
     flex-direction: column;
   }
 
-  /* Login page root fills viewport without scroll lock */
   #root {
     min-height: 100vh;
     display: flex;
@@ -48,40 +45,38 @@
   }
 
   ::selection {
-    @apply bg-brand-100 dark:bg-brand-900;
+    @apply bg-brand-100 dark:bg-brand-900 text-brand-950 dark:text-brand-50;
   }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-700 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-600; }
+  ::-webkit-scrollbar-thumb { @apply bg-stone-300 dark:bg-zinc-700 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-stone-400 dark:bg-zinc-600; }
 
-  * { @apply border-gray-200 dark:border-gray-800; }
+  * { @apply border-stone-200 dark:border-zinc-800; }
 }
 
 @layer components {
-  /* Email safe rendering */
   .email-body img { max-width: 100%; height: auto; border-radius: 4px; }
   .email-body a {
-    @apply text-[#1a73e8] dark:text-brand-400 underline;
+    @apply text-brand-700 dark:text-brand-400 underline;
     word-break: break-all;
   }
   .email-body blockquote {
-    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-1 my-2 text-gray-500 dark:text-gray-400 italic;
+    @apply border-l-4 border-stone-300 dark:border-zinc-600 pl-4 py-1 my-2 text-stone-500 dark:text-stone-400 italic;
   }
   .email-body pre {
-    @apply bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 overflow-x-auto text-sm font-mono;
+    @apply bg-stone-50 dark:bg-zinc-800 rounded-lg border border-stone-200 dark:border-zinc-700 p-4 overflow-x-auto text-sm font-mono;
   }
   .email-body table { @apply max-w-full; overflow-x: auto; display: block; }
   .email-body p { @apply mb-3 last:mb-0; }
 
-  /* Skeleton shimmer */
   .skeleton-shimmer {
     background: linear-gradient(
       90deg,
-      theme('colors.gray.100') 0%,
-      theme('colors.gray.200') 50%,
-      theme('colors.gray.100') 100%
+      theme('colors.stone.100') 0%,
+      theme('colors.stone.200') 50%,
+      theme('colors.stone.100') 100%
     );
     background-size: 200% 100%;
     animation: shimmer 2s linear infinite;
@@ -89,27 +84,24 @@
   .dark .skeleton-shimmer {
     background: linear-gradient(
       90deg,
-      theme('colors.gray.800') 0%,
-      theme('colors.gray.700') 50%,
-      theme('colors.gray.800') 100%
+      theme('colors.zinc.800') 0%,
+      theme('colors.zinc.700') 50%,
+      theme('colors.zinc.800') 100%
     );
     background-size: 200% 100%;
   }
 
-  /* Glass morphism card */
   .glass {
-    @apply backdrop-blur-2xl bg-white/80 dark:bg-gray-900/80 border border-white/60 dark:border-gray-700/40;
+    @apply backdrop-blur-2xl bg-white/80 dark:bg-zinc-900/80 border border-white/60 dark:border-zinc-700/40;
   }
 
-  /* Gradient text utility */
   .text-gradient {
-    background: linear-gradient(135deg, #818cf8 0%, #a78bfa 40%, #6366f1 100%);
+    background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 40%, #0d9488 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Login floating orb */
   .login-orb {
     border-radius: 50%;
     filter: blur(80px);

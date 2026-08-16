@@ -18,7 +18,7 @@ export function MobileNav() {
   const { data: unreadCount = 0 } = useUnreadCount();
 
   return (
-    <nav className="flex items-center justify-around px-2 py-1 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-bottom">
+    <nav className="flex items-center justify-around px-2 py-1 bg-white dark:bg-zinc-950 border-t border-stone-200 dark:border-zinc-800 safe-bottom">
       {NAV_ITEMS.map(({ icon: Icon, label, folder, showBadge }) => (
         <button
           key={folder}

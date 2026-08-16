@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
 
 const ACCENT_COLORS = [
+  { name: 'teal', color: '#0D9488' },
   { name: 'indigo', color: '#4F46E5' },
   { name: 'blue', color: '#2563EB' },
   { name: 'green', color: '#16A34A' },
@@ -25,8 +26,8 @@ const ACCENT_COLORS = [
 ] as const;
 
 const AVATAR_COLORS = [
-  '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',
-  '#D97706', '#059669', '#0284C7', '#0891B2',
+  '#0D9488', '#4F46E5', '#7C3AED', '#DB2777',
+  '#DC2626', '#D97706', '#0284C7', '#0891B2',
 ];
 
 const KEYBOARD_SHORTCUTS = [
@@ -124,7 +125,7 @@ export function Settings() {
   return (
     <AppShell>
       <div className="flex h-full">
-        <aside className="hidden md:flex flex-col w-52 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-3 gap-0.5">
+        <aside className="hidden md:flex flex-col w-52 border-r border-stone-200 dark:border-zinc-800 bg-stone-50 dark:bg-zinc-950 p-3 gap-0.5">
           <Link
             to="/"
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4"

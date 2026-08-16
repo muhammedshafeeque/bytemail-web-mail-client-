@@ -29,18 +29,13 @@ export const env = {
   REDIS_PORT: parseInt(optional('REDIS_PORT', '6379'), 10),
   REDIS_PASSWORD: optional('REDIS_PASSWORD', ''),
 
-  IMAP_HOST: required('IMAP_HOST'),
-  IMAP_PORT: parseInt(optional('IMAP_PORT', '993'), 10),
-  IMAP_TLS: optional('IMAP_TLS', 'true') === 'true',
+  WILDDUCK_MONGO_URI: optional('WILDDUCK_MONGO_URI', 'mongodb://localhost:27017/wildduck'),
+  WILDDUCK_API_URL: optional('WILDDUCK_API_URL', 'http://mail.repod.online'),
+  WILDDUCK_ACCESS_TOKEN: optional('WILDDUCK_ACCESS_TOKEN', ''),
 
-  SMTP_HOST: required('SMTP_HOST'),
-  SMTP_PORT: parseInt(optional('SMTP_PORT', '587'), 10),
-  SMTP_SECURE: optional('SMTP_SECURE', 'false') === 'true',
-  SMTP_USER: optional('SMTP_USER', ''),
-  SMTP_PASS: optional('SMTP_PASS', ''),
-  MAIL_FROM: optional('MAIL_FROM', 'ByteMail <noreply@byzand.online>'),
+  MAIL_FROM: optional('MAIL_FROM', 'ByteMail <noreply@repod.online>'),
 
   VAPID_PUBLIC_KEY: optional('VAPID_PUBLIC_KEY', ''),
   VAPID_PRIVATE_KEY: optional('VAPID_PRIVATE_KEY', ''),
-  VAPID_EMAIL: optional('VAPID_EMAIL', 'admin@byzand.online'),
+  VAPID_EMAIL: optional('VAPID_EMAIL', 'admin@repod.online'),
 } as const;

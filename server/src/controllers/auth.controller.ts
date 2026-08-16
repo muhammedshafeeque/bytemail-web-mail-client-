@@ -5,7 +5,7 @@ import { User } from '../models/User.model';
 import { hashPassword } from '../utils/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { logger } from '../utils/logger';
-import { verifyImapCredentials } from '../services/imap.service';
+import { authenticateUser, WildduckApiError } from '../services/wildduck-api.service';
 import {
   clearSession,
   getStoredRefreshToken,
@@ -18,11 +18,15 @@ const LoginSchema = z.object({
 });
 
 const AVATAR_COLORS = [
-  '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',
-  '#D97706', '#059669', '#0284C7', '#0891B2',
+  '#0D9488', '#4F46E5', '#7C3AED', '#DB2777',
+  '#DC2626', '#D97706', '#0284C7', '#0891B2',
 ];
 
-async function findOrCreateUser(email: string): Promise<InstanceType<typeof User>> {
+async function findOrCreateUser(
+  email: string,
+  wdUserId: string,
+  displayName?: string,
+): Promise<InstanceType<typeof User>> {
   const normalizedEmail = email.toLowerCase();
   let user = await User.findOne({ email: normalizedEmail });
 
@@ -32,12 +36,14 @@ async function findOrCreateUser(email: string): Promise<InstanceType<typeof User
     user = await User.create({
       email: normalizedEmail,
       password: placeholder,
-      name: email.split('@')[0],
+      name: displayName || email.split('@')[0],
       avatar_color: avatarColor,
+      wildduck_id: wdUserId,
     });
-    logger.info('New user created from IMAP login', { email: normalizedEmail });
+    logger.info('New user created from WildDuck login', { email: normalizedEmail, wdUserId });
   } else {
     user.last_login = new Date();
+    if (!user.wildduck_id) user.wildduck_id = wdUserId;
     await user.save();
   }
 
@@ -48,37 +54,36 @@ export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = LoginSchema.parse(req.body);
 
   try {
-    await verifyImapCredentials(email, password);
+    const wd = await authenticateUser(email, password);
+    const user = await findOrCreateUser(email, wd.id, wd.username);
+    const payload = { userId: user._id.toString(), email: user.email };
+    const accessToken = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
+
+    await storeSession(user.email, refreshToken, { wdUserId: wd.id, token: wd.token });
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth',
+    });
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
+
+    res.json({
+      success: true,
+      data: {
+        accessToken,
+        user: userWithoutPassword,
+      },
+    });
   } catch (err) {
-    logger.error('IMAP login error', { error: (err as Error).message, email });
-    res.status(401).json({ success: false, message: 'Invalid email or password' });
-    return;
+    const status = err instanceof WildduckApiError ? Math.min(err.status, 401) : 401;
+    logger.error('WildDuck login error', { error: (err as Error).message, email });
+    res.status(status === 401 ? 401 : 401).json({ success: false, message: 'Invalid email or password' });
   }
-
-  const user = await findOrCreateUser(email);
-  const payload = { userId: user._id.toString(), email: user.email };
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken(payload);
-
-  await storeSession(user.email, refreshToken, password);
-
-  res.cookie('refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/api/auth',
-  });
-
-  const { password: _, ...userWithoutPassword } = user.toObject();
-
-  res.json({
-    success: true,
-    data: {
-      accessToken,
-      user: userWithoutPassword,
-    },
-  });
 }
 
 export async function logout(req: Request, res: Response): Promise<void> {
@@ -134,7 +139,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   }).parse(req.body);
 
   try {
-    await verifyImapCredentials(email, password);
+    await authenticateUser(email, password);
   } catch {
     res.status(400).json({
       success: false,

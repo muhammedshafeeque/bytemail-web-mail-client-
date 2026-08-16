@@ -19,7 +19,7 @@ const PrefsSchema = z.object({
   avatar_color: z.string().optional(),
   preferences: z.object({
     theme: z.enum(['light', 'dark', 'system']).optional(),
-    accent: z.enum(['indigo', 'blue', 'green', 'rose', 'orange']).optional(),
+    accent: z.enum(['teal', 'indigo', 'blue', 'green', 'rose', 'orange']).optional(),
     density: z.enum(['comfortable', 'compact']).optional(),
     emails_per_page: z.number().min(10).max(100).optional(),
     signature: z.string().optional(),

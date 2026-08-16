@@ -1,44 +1,45 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { User } from '../models/User.model';
-import { EmailCache } from '../models/EmailCache.model';
 import { Contact } from '../models/Contact.model';
 import {
   fetchEmails,
   fetchEmailByUid,
-  markEmailRead,
-  toggleStar,
-  moveEmail,
-  deleteEmail,
   syncFolder,
-} from '../services/imap.service';
-import { sendEmail } from '../services/smtp.service';
-import { cacheDelPattern } from '../services/cache.service';
-import { env } from '../config/env';
+  searchEmails,
+  resolveMailbox,
+  resolveMessageLocation,
+  invalidateMailCache,
+} from '../services/wildduck-db.service';
+import {
+  submitMessage,
+  updateMessage,
+  deleteMessage,
+} from '../services/wildduck-api.service';
 import { getCredentialsForUser } from '../services/session.service';
 
 export async function listEmails(req: Request, res: Response): Promise<void> {
   const { folder = 'INBOX', page = '1', limit = '25' } = req.query as Record<string, string>;
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId } = await getCredentialsForUser(req.user!.userId);
 
-  const result = await fetchEmails(email, password, folder, parseInt(page), parseInt(limit));
+  const result = await fetchEmails(wdUserId, folder, parseInt(page, 10), parseInt(limit, 10));
 
   res.json({
     success: true,
     data: result.emails,
     total: result.total,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    has_more: result.total > parseInt(page) * parseInt(limit),
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    has_more: result.total > parseInt(page, 10) * parseInt(limit, 10),
   });
 }
 
 export async function getEmail(req: Request, res: Response): Promise<void> {
   const { uid } = req.params;
   const { folder = 'INBOX' } = req.query as Record<string, string>;
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
-  const emailData = await fetchEmailByUid(email, password, uid, folder);
+  const emailData = await fetchEmailByUid(wdUserId, uid, folder, token);
 
   if (!emailData) {
     res.status(404).json({ success: false, message: 'Email not found' });
@@ -46,7 +47,11 @@ export async function getEmail(req: Request, res: Response): Promise<void> {
   }
 
   if (!emailData.is_read) {
-    await markEmailRead(email, password, uid, folder, true).catch(() => {});
+    const loc = await resolveMessageLocation(wdUserId, uid, folder);
+    if (loc) {
+      await updateMessage(wdUserId, loc.mailboxId, loc.messageId, { seen: true }, token).catch(() => {});
+      await invalidateMailCache(wdUserId, [uid]);
+    }
   }
 
   res.json({ success: true, data: emailData });
@@ -62,25 +67,32 @@ const SendSchema = z.object({
   reply_to: z.string().optional(),
 });
 
+function toAddr(address: string): { name: string; address: string } {
+  return { name: address.split('@')[0], address };
+}
+
 export async function sendEmailHandler(req: Request, res: Response): Promise<void> {
   const data = SendSchema.parse(req.body);
-  const user = await User.findById(req.user!.userId).select('email name password preferences').lean();
+  const user = await User.findById(req.user!.userId).select('email name preferences wildduck_id').lean();
   if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
   const signature = user.preferences?.signature ?? '';
   const html = data.body_html + (signature ? `<br><br><div class="signature">${signature}</div>` : '');
 
-  await sendEmail({
-    from: `${user.name} <${user.email}>`,
-    to: data.to,
-    cc: data.cc,
-    bcc: data.bcc,
+  const sentMailbox = await resolveMailbox(wdUserId, 'Sent');
+
+  await submitMessage(wdUserId, {
+    from: { name: user.name, address: user.email },
+    to: data.to.map(toAddr),
+    cc: data.cc.map(toAddr),
+    bcc: data.bcc.map(toAddr),
     subject: data.subject,
     html,
     text: data.body_text,
-    reply_to: data.reply_to,
-    userEmail: user.email,
-  });
+    mailbox: sentMailbox?._id.toString(),
+  }, token);
 
   const allRecipients = [...data.to, ...(data.cc ?? [])];
   for (const recipEmail of allRecipients) {
@@ -94,16 +106,23 @@ export async function sendEmailHandler(req: Request, res: Response): Promise<voi
     );
   }
 
-  await cacheDelPattern(`emails:${user.email}:Sent:*`);
+  await invalidateMailCache(wdUserId);
   res.json({ success: true, message: 'Email sent' });
 }
 
 export async function markRead(req: Request, res: Response): Promise<void> {
   const { uid } = req.params;
   const { folder = 'INBOX', read = 'true' } = req.query as Record<string, string>;
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
-  await markEmailRead(email, password, uid, folder, read === 'true');
+  const loc = await resolveMessageLocation(wdUserId, uid, folder);
+  if (!loc) {
+    res.status(404).json({ success: false, message: 'Email not found' });
+    return;
+  }
+
+  await updateMessage(wdUserId, loc.mailboxId, loc.messageId, { seen: read === 'true' }, token);
+  await invalidateMailCache(wdUserId, [uid]);
   res.json({ success: true });
 }
 
@@ -111,27 +130,59 @@ export async function starEmail(req: Request, res: Response): Promise<void> {
   const { uid } = req.params;
   const { folder = 'INBOX' } = req.query as Record<string, string>;
   const { star } = z.object({ star: z.boolean() }).parse(req.body);
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
-  await toggleStar(email, password, uid, folder, star);
+  const loc = await resolveMessageLocation(wdUserId, uid, folder);
+  if (!loc) {
+    res.status(404).json({ success: false, message: 'Email not found' });
+    return;
+  }
+
+  await updateMessage(wdUserId, loc.mailboxId, loc.messageId, { flagged: star }, token);
+  await invalidateMailCache(wdUserId, [uid]);
   res.json({ success: true });
 }
 
 export async function moveEmailHandler(req: Request, res: Response): Promise<void> {
   const { uid } = req.params;
   const { folder = 'INBOX', to } = z.object({ folder: z.string().optional().default('INBOX'), to: z.string() }).parse(req.body);
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
-  await moveEmail(email, password, uid, folder, to);
+  const loc = await resolveMessageLocation(wdUserId, uid, folder);
+  const dest = await resolveMailbox(wdUserId, to);
+  if (!loc || !dest) {
+    res.status(404).json({ success: false, message: 'Email or destination folder not found' });
+    return;
+  }
+
+  await updateMessage(wdUserId, loc.mailboxId, loc.messageId, { moveTo: dest._id.toString() }, token);
+  await invalidateMailCache(wdUserId, [uid]);
   res.json({ success: true });
 }
 
 export async function deleteEmailHandler(req: Request, res: Response): Promise<void> {
   const { uid } = req.params;
   const { folder = 'INBOX' } = req.query as Record<string, string>;
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId, token } = await getCredentialsForUser(req.user!.userId);
 
-  await deleteEmail(email, password, uid, folder);
+  const loc = await resolveMessageLocation(wdUserId, uid, folder);
+  if (!loc) {
+    res.status(404).json({ success: false, message: 'Email not found' });
+    return;
+  }
+
+  if (folder.toLowerCase() === 'trash' || loc.folderKey.toLowerCase() === 'trash') {
+    await deleteMessage(wdUserId, loc.mailboxId, loc.messageId, token);
+  } else {
+    const trash = await resolveMailbox(wdUserId, 'Trash');
+    if (trash) {
+      await updateMessage(wdUserId, loc.mailboxId, loc.messageId, { moveTo: trash._id.toString() }, token);
+    } else {
+      await deleteMessage(wdUserId, loc.mailboxId, loc.messageId, token);
+    }
+  }
+
+  await invalidateMailCache(wdUserId, [uid]);
   res.json({ success: true });
 }
 
@@ -143,30 +194,29 @@ export async function searchEmailsHandler(req: Request, res: Response): Promise<
     return;
   }
 
-  const { searchEmails } = await import('../services/search.service');
+  const { wdUserId } = await getCredentialsForUser(req.user!.userId);
   const result = await searchEmails(
-    req.user!.email,
+    wdUserId,
     q.trim(),
     folder,
-    parseInt(page),
-    parseInt(limit)
+    parseInt(page, 10),
+    parseInt(limit, 10)
   );
 
   res.json({
     success: true,
     data: result.emails,
     total: result.total,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    has_more: result.total > parseInt(page) * parseInt(limit),
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    has_more: result.total > parseInt(page, 10) * parseInt(limit, 10),
   });
 }
 
 export async function syncFolderHandler(req: Request, res: Response): Promise<void> {
   const { folder = 'INBOX' } = req.query as Record<string, string>;
-  const { email, password } = await getCredentialsForUser(req.user!.userId);
+  const { wdUserId } = await getCredentialsForUser(req.user!.userId);
 
-  await cacheDelPattern(`emails:${email}:${folder}:*`);
-  const result = await syncFolder(email, password, folder);
+  const result = await syncFolder(wdUserId, folder);
   res.json({ success: true, data: result.emails, total: result.total });
 }

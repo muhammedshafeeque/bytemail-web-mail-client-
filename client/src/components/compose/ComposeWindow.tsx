@@ -75,7 +75,7 @@ export function ComposeWindow({ window: win, index }: ComposeWindowProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{ right: `${16 + offset}px` }}
-        className="fixed bottom-0 z-50 w-64 bg-gray-800 dark:bg-gray-900 text-white rounded-t-xl shadow-compose overflow-hidden cursor-pointer"
+        className="fixed bottom-0 z-50 w-64 bg-brand-800 dark:bg-zinc-900 text-white rounded-t-xl shadow-compose overflow-hidden cursor-pointer"
         onClick={() => minimizeCompose(win.id)}
       >
         <div className="flex items-center justify-between px-4 py-2.5">
@@ -101,13 +101,13 @@ export function ComposeWindow({ window: win, index }: ComposeWindowProps) {
       transition={{ duration: 0.2 }}
       style={win.fullscreen ? {} : { right: `${16 + offset}px`, bottom: 0 }}
       className={cn(
-        'fixed z-50 bg-white dark:bg-gray-900 rounded-t-2xl shadow-compose flex flex-col overflow-hidden',
+        'fixed z-50 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-compose flex flex-col overflow-hidden',
         win.fullscreen
           ? 'inset-4 rounded-2xl'
           : 'w-[540px] h-[480px]'
       )}
     >
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-800 dark:bg-gray-950 text-white rounded-t-2xl flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 bg-brand-800 dark:bg-zinc-950 text-white rounded-t-2xl flex-shrink-0">
         <span className="text-sm font-medium truncate">{data.subject || 'New Message'}</span>
         <div className="flex items-center gap-1">
           {isSaving && <span className="text-xs text-gray-400 mr-2">Saving...</span>}

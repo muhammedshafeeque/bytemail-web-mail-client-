@@ -2,12 +2,14 @@ import { createServer } from 'http';
 import app from './app';
 import { env } from './config/env';
 import { connectMongoDB } from './config/mongodb';
+import { connectWildduck } from './config/wildduck';
 import { connectRedis } from './config/redis';
 import { initSocket } from './socket/socket';
 import { logger } from './utils/logger';
 
 async function bootstrap(): Promise<void> {
   await connectMongoDB();
+  await connectWildduck();
   await connectRedis();
 
   const httpServer = createServer(app);

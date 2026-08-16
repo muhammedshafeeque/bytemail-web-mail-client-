@@ -3,7 +3,7 @@ import { Mail } from 'lucide-react';
 
 export function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-surface-dark p-4">
       <div className="text-center">
         <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gray-100 dark:bg-gray-900 mb-6">
           <Mail className="h-7 w-7 text-gray-400" />

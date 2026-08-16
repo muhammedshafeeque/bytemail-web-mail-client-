@@ -32,7 +32,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
 
   if (!email) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-[#f6f8fc] dark:bg-[#1f1f1f]">
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-stone-50 dark:bg-surface-dark">
         <div className="h-20 w-20 rounded-full bg-white dark:bg-gray-900 shadow-lg flex items-center justify-center">
           <svg className="h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -56,7 +56,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className="flex flex-col h-full bg-[#f6f8fc] dark:bg-[#1f1f1f] overflow-hidden"
+      className="flex flex-col h-full bg-stone-50 dark:bg-surface-dark overflow-hidden"
     >
       {/* Top toolbar strip */}
       <div className="flex items-center justify-between px-4 py-2 flex-shrink-0">
@@ -70,7 +70,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
 
       <div className="flex-1 overflow-y-auto px-4 pb-6">
         {/* Email card */}
-        <div className="bg-white dark:bg-[#2d2d2d] rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 overflow-hidden">
           {/* Subject header */}
           <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
             <h1 className="text-2xl font-normal text-gray-900 dark:text-gray-50 leading-snug">
@@ -162,7 +162,7 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
         </div>
 
         {/* Quick reply hint */}
-        <div className="mt-4 bg-white dark:bg-[#2d2d2d] rounded-2xl shadow-sm px-6 py-4 flex items-center gap-3 text-sm text-gray-400 dark:text-gray-500 cursor-pointer hover:shadow-md transition-shadow group" onClick={() => {}}>
+        <div className="mt-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-stone-100 dark:border-zinc-800 px-6 py-4 flex items-center gap-3 text-sm text-stone-400 dark:text-stone-500 cursor-pointer hover:shadow-md transition-shadow group" onClick={() => {}}>
           <EmailAvatar from={email.to[0] ?? email.from} size="sm" />
           <span className="group-hover:text-gray-500 dark:group-hover:text-gray-300 transition-colors">Click here to reply...</span>
         </div>

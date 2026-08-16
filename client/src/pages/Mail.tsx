@@ -67,10 +67,9 @@ export function Mail() {
   const shown = emails.length;
 
   const listPanel = (
-    <div className="flex flex-col h-full bg-white dark:bg-[#1f1f1f]">
+    <div className="flex flex-col h-full bg-white dark:bg-zinc-950">
 
-      {/* Gmail-style list toolbar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-stone-200 dark:border-zinc-800 flex-shrink-0">
 
         {/* Select-all checkbox + dropdown */}
         <div className="flex items-center mr-1" onClick={(e) => e.stopPropagation()}>
@@ -82,7 +81,7 @@ export function Mail() {
         <button
           onClick={handleSync}
           title="Refresh"
-          className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
         >
           <motion.div
             animate={{ rotate: isSyncing ? 360 : 0 }}
@@ -95,7 +94,7 @@ export function Mail() {
         {/* More options */}
         <button
           title="More"
-          className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
         >
           <MoreVertical className="h-4 w-4" />
         </button>
@@ -104,19 +103,19 @@ export function Mail() {
 
         {/* Pagination */}
         {total > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
             <span>1–{shown} of {total}</span>
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               disabled={!data?.has_more}
               onClick={() => setPage((p) => p + 1)}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -126,7 +125,7 @@ export function Mail() {
 
       {/* Folder name tab */}
       <div className="px-4 pt-3 pb-1 flex-shrink-0">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-2">
           {folderLabel}
           {total > 0 && (
             <span className="text-xs text-gray-400 font-normal">{total}</span>

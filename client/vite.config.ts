@@ -12,8 +12,8 @@ export default defineConfig({
       manifest: {
         name: 'ByteMail',
         short_name: 'ByteMail',
-        description: 'Beautiful email client for byzand.online',
-        theme_color: '#4F46E5',
+        description: 'Modern email client for repod.online',
+        theme_color: '#0D9488',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',

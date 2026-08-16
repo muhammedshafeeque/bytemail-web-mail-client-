@@ -12,6 +12,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/utils/cn';
+import { Folder } from '@/types/folder';
 
 const NAV_ITEMS = [
   { icon: Inbox,         label: 'Inbox',   folder: 'INBOX'   },
@@ -23,6 +24,21 @@ const NAV_ITEMS = [
   { icon: Trash2,        label: 'Trash',   folder: 'Trash'   },
 ];
 
+function folderMatches(f: Folder, key: string): boolean {
+  if (f.path === key || f.name === key) return true;
+  const aliases: Record<string, string[]> = {
+    Sent: ['\\Sent', 'Sent Mail'],
+    Spam: ['\\Junk', 'Junk'],
+    Trash: ['\\Trash'],
+    Drafts: ['\\Drafts'],
+    Archive: ['\\Archive'],
+    INBOX: ['INBOX'],
+  };
+  return (aliases[key] ?? []).some(
+    (a) => f.specialUse === a || f.name === a || f.path === a || f.flags?.includes(a),
+  );
+}
+
 export function Sidebar() {
   const { selectedFolder, setSelectedFolder } = useEmailStore();
   const { sidebarCollapsed } = useUiStore();
@@ -32,7 +48,7 @@ export function Sidebar() {
   const navigate = useNavigate();
 
   const getCount = (folder: string): number => {
-    const f = folders?.find((f) => f.name === folder || f.path === folder);
+    const f = folders?.find((item) => folderMatches(item, folder));
     return f?.unseen ?? 0;
   };
 
@@ -40,7 +56,7 @@ export function Sidebar() {
     <motion.aside
       animate={{ width: sidebarCollapsed ? 72 : 256 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="flex flex-col h-full bg-white dark:bg-[#1f1f1f] flex-shrink-0 overflow-hidden"
+      className="flex flex-col h-full bg-white dark:bg-zinc-950 flex-shrink-0 overflow-hidden border-r border-stone-200/80 dark:border-zinc-800"
     >
       <div className={cn('pt-3 pb-1', sidebarCollapsed ? 'px-3 flex justify-center' : 'px-3')}>
         <Tooltip
@@ -51,10 +67,10 @@ export function Sidebar() {
           <button
             onClick={newCompose}
             className={cn(
-              'flex items-center gap-3 font-medium transition-all select-none',
+              'flex items-center gap-3 font-semibold transition-all select-none',
               sidebarCollapsed
-                ? 'p-4 rounded-2xl bg-[#c2e7ff] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] hover:bg-[#b0d8f5] dark:hover:bg-[#005a8e] shadow-md hover:shadow-lg'
-                : 'w-full px-6 py-3.5 rounded-2xl bg-[#c2e7ff] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] hover:bg-[#b0d8f5] dark:hover:bg-[#005a8e] shadow-md hover:shadow-lg text-sm'
+                ? 'p-3.5 rounded-2xl bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-600/25'
+                : 'w-full px-5 py-3 rounded-2xl bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-600/25 text-sm'
             )}
           >
             <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -65,7 +81,7 @@ export function Sidebar() {
         </Tooltip>
       </div>
 
-      <nav className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden mt-1 min-w-0">
+      <nav className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden mt-2 min-w-0 px-2">
         {NAV_ITEMS.map(({ icon: Icon, label, folder }) => {
           const count = getCount(folder);
           const isActive = selectedFolder === folder;
@@ -75,28 +91,26 @@ export function Sidebar() {
               key={folder}
               content={sidebarCollapsed ? label : ''}
               side="right"
-              className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
+              className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0'}
             >
               <button
                 onClick={() => setSelectedFolder(folder)}
                 className={cn(
-                  'relative flex items-center min-w-0 transition-colors duration-150 select-none',
+                  'relative flex items-center min-w-0 transition-colors duration-150 select-none rounded-xl my-0.5',
                   sidebarCollapsed
-                    ? 'justify-center py-3 px-2 my-0.5 mx-2 rounded-2xl w-12'
-                    : 'gap-4 w-full py-2.5 pl-6 pr-4 my-0.5',
+                    ? 'justify-center py-3 px-2 w-12 mx-auto'
+                    : 'gap-3 w-full py-2.5 px-3',
                   isActive
-                    ? sidebarCollapsed
-                      ? 'bg-[#d3e3fd] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] font-semibold'
-                      : 'bg-[#d3e3fd] dark:bg-[#004a77] text-[#001d35] dark:text-[#c2e7ff] font-semibold rounded-r-full'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-normal rounded-r-full'
+                    ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-800 dark:text-brand-200 font-semibold'
+                    : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-zinc-800 font-normal'
                 )}
               >
-                <Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-[#001d35] dark:text-[#c2e7ff]' : 'text-gray-600 dark:text-gray-400')} />
+                <Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-brand-600 dark:text-brand-400' : 'text-stone-500 dark:text-stone-400')} />
                 {!sidebarCollapsed && (
                   <>
                     <span className="flex-1 text-left text-sm truncate">{label}</span>
                     {count > 0 && (
-                      <span className="text-xs font-semibold flex-shrink-0">{count}</span>
+                      <span className="text-xs font-semibold flex-shrink-0 text-brand-700 dark:text-brand-300">{count}</span>
                     )}
                   </>
                 )}
@@ -109,22 +123,22 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-gray-100 dark:border-gray-800 py-2 flex-shrink-0 flex flex-col min-w-0">
+      <div className="border-t border-stone-100 dark:border-zinc-800 py-2 flex-shrink-0 flex flex-col min-w-0 px-2">
         <Tooltip
           content={sidebarCollapsed ? 'Settings' : ''}
           side="right"
-          className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
+          className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0'}
         >
           <Link
             to="/settings"
             className={cn(
-              'flex items-center min-w-0 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors py-2.5 select-none',
+              'flex items-center min-w-0 text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors py-2.5 select-none rounded-xl',
               sidebarCollapsed
-                ? 'justify-center px-2 mx-2 rounded-2xl w-12'
-                : 'gap-4 w-full pl-6 pr-4 rounded-r-full'
+                ? 'justify-center px-2 mx-auto w-12'
+                : 'gap-3 w-full px-3'
             )}
           >
-            <Settings className="h-5 w-5 flex-shrink-0 text-gray-600 dark:text-gray-400" />
+            <Settings className="h-5 w-5 flex-shrink-0 text-stone-500 dark:text-stone-400" />
             {!sidebarCollapsed && <span>Settings</span>}
           </Link>
         </Tooltip>
@@ -133,22 +147,22 @@ export function Sidebar() {
           <Tooltip
             content={sidebarCollapsed ? user.name : ''}
             side="right"
-            className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0 pr-4'}
+            className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0'}
           >
             <div
               className={cn(
-                'flex items-center min-w-0 py-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none',
+                'flex items-center min-w-0 py-2.5 cursor-pointer hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors select-none rounded-xl',
                 sidebarCollapsed
-                  ? 'justify-center px-2 mx-2 rounded-2xl w-12'
-                  : 'gap-3 w-full pl-6 pr-4 rounded-r-full'
+                  ? 'justify-center px-2 mx-auto w-12'
+                  : 'gap-3 w-full px-3'
               )}
               onClick={() => navigate('/settings')}
             >
               <Avatar name={user.name} email={user.email} color={user.avatar_color} size="sm" />
               {!sidebarCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  <p className="text-xs font-semibold text-stone-800 dark:text-stone-200 truncate">{user.name}</p>
+                  <p className="text-xs text-stone-400 truncate">{user.email}</p>
                 </div>
               )}
             </div>

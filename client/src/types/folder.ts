@@ -6,6 +6,8 @@ export interface Folder {
   total: number;
   unseen: number;
   uidNext: number;
+  specialUse?: string | null;
+  mailboxId?: string;
 }
 
 export type FolderName = 'INBOX' | 'Sent' | 'Drafts' | 'Spam' | 'Trash' | 'Starred';

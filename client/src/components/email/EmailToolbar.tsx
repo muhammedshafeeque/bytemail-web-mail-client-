@@ -17,7 +17,7 @@ function IconButton({ onClick, title, children, className }: { onClick?: () => v
       onClick={onClick}
       title={title}
       className={cn(
-        'p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+        'p-2 rounded-full text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors',
         className
       )}
     >
@@ -52,7 +52,7 @@ export function EmailToolbar({ email }: EmailToolbarProps) {
       <Tooltip content="Reply (r)">
         <button
           onClick={() => replyTo(email)}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-[#f2f6fc] dark:hover:bg-gray-700 hover:border-gray-400 transition-all"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-stone-300 dark:border-zinc-600 text-sm font-medium text-stone-700 dark:text-stone-300 hover:bg-brand-50 dark:hover:bg-zinc-800 hover:border-brand-300 dark:hover:border-brand-700 transition-all"
         >
           <Reply className="h-4 w-4" />
           Reply

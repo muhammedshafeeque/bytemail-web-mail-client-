@@ -5,9 +5,10 @@ export interface IUser extends Document {
   password: string;
   name: string;
   avatar_color: string;
+  wildduck_id?: string;
   preferences: {
     theme: 'light' | 'dark' | 'system';
-    accent: 'indigo' | 'blue' | 'green' | 'rose' | 'orange';
+    accent: 'teal' | 'indigo' | 'blue' | 'green' | 'rose' | 'orange';
     density: 'comfortable' | 'compact';
     emails_per_page: number;
     signature: string;
@@ -23,10 +24,11 @@ const UserSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   name: { type: String, required: true, trim: true },
-  avatar_color: { type: String, default: '#4F46E5' },
+  avatar_color: { type: String, default: '#0D9488' },
+  wildduck_id: { type: String, index: true },
   preferences: {
     theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
-    accent: { type: String, enum: ['indigo', 'blue', 'green', 'rose', 'orange'], default: 'indigo' },
+    accent: { type: String, enum: ['teal', 'indigo', 'blue', 'green', 'rose', 'orange'], default: 'teal' },
     density: { type: String, enum: ['comfortable', 'compact'], default: 'comfortable' },
     emails_per_page: { type: Number, default: 25, min: 10, max: 100 },
     signature: { type: String, default: '' },
