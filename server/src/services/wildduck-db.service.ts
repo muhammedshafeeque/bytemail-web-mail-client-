@@ -165,7 +165,7 @@ function asAddressList(value: unknown): { name: string; email: string }[] {
     return value.flatMap((item) => asAddressList(item));
   }
   if (typeof value === 'object') {
-    const obj = value as WdAddress & { text?: unknown };
+    const obj = value as WdAddress & { text?: unknown; value?: unknown };
     if (obj.value != null && obj.value !== '') return asAddressList(obj.value);
     const email = String(obj.address || obj.email || obj.addr || '').trim().toLowerCase();
     const name = String(obj.name || '').trim();
