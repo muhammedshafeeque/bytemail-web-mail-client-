@@ -86,22 +86,29 @@ export async function adminDashboard(_req: Request, res: Response): Promise<void
 
 export async function adminListUsers(req: Request, res: Response): Promise<void> {
   const query = typeof req.query.query === 'string' ? req.query.query : '';
+  const domain = typeof req.query.domain === 'string' ? req.query.domain.trim().toLowerCase() : '';
   const page = Number(req.query.page) || 1;
-  const limit = Math.min(Number(req.query.limit) || 25, 100);
-  const data = await wdListUsers(query, page, limit);
+  const limit = Math.min(Number(req.query.limit) || 100, 250);
+  const search = domain && !query.includes('@') ? `${query} ${domain}`.trim() : query;
+  const data = await wdListUsers(search, page, limit);
   const emails = data.results.map((u) => u.address.toLowerCase());
   const local = await User.find({ email: { $in: emails } }).select('email role').lean();
   const roleByEmail = new Map(local.map((u) => [u.email, u.role || 'user']));
 
-  res.json({
-    success: true,
-    total: data.total,
-    page: data.page,
-    data: data.results.map((user) => ({
+  const mapped = data.results
+    .filter((user) => !domain || domainFromAddress(user.address) === domain)
+    .map((user) => ({
       ...user,
+      domain: domainFromAddress(user.address),
       role: roleByEmail.get(user.address.toLowerCase()) || 'user',
       env_admin: isEnvAdmin(user.address),
-    })),
+    }));
+
+  res.json({
+    success: true,
+    total: domain ? mapped.length : data.total,
+    page: data.page,
+    data: mapped,
   });
 }
 

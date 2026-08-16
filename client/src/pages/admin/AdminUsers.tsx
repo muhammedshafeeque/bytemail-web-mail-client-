@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { adminApi, AdminUser } from '@/api/adminApi';
+import { cn } from '@/utils/cn';
+
+function domainOf(address: string): string {
+  const at = address.lastIndexOf('@');
+  return at >= 0 ? address.slice(at + 1).toLowerCase() : '';
+}
 
 function formatQuota(user: AdminUser): string {
   const allowed = user.quota?.allowed ?? 0;
@@ -17,8 +23,16 @@ export function AdminUsers() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
+  const [domain, setDomain] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ username: '', address: '', password: '', name: '', quota_mb: '1024' });
+  const [form, setForm] = useState({
+    local: '',
+    domain: '',
+    username: '',
+    password: '',
+    name: '',
+    quota_mb: '1024',
+  });
   const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
@@ -26,24 +40,57 @@ export function AdminUsers() {
   const [quotaMb, setQuotaMb] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-users', search],
-    queryFn: async () => (await adminApi.listUsers(search, 1)).data,
+    queryKey: ['admin-users', search, domain],
+    queryFn: async () => (await adminApi.listUsers(search, 1, domain)).data,
+  });
+
+  const { data: domainsData } = useQuery({
+    queryKey: ['admin-domains'],
+    queryFn: async () => (await adminApi.listDomains()).data.data,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-users'] });
 
+  const users = data?.data ?? [];
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, AdminUser[]>();
+    for (const user of users) {
+      const key = domainOf(user.address) || '(no domain)';
+      const list = map.get(key) ?? [];
+      list.push(user);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [users]);
+
+  const domainOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of domainsData ?? []) if (row.domain) set.add(row.domain.toLowerCase());
+    for (const [name] of grouped) if (name && name !== '(no domain)') set.add(name);
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [domainsData, grouped]);
+
+  const visibleGroups = domain
+    ? grouped.filter(([name]) => name === domain)
+    : grouped;
+
   const createUser = useMutation({
-    mutationFn: () => adminApi.createUser({
-      username: form.username.trim() || undefined,
-      address: form.address.trim(),
-      password: form.password,
-      name: form.name.trim() || undefined,
-      quota_mb: Number(form.quota_mb) || undefined,
-    }),
+    mutationFn: () => {
+      const host = form.domain.trim() || domain || domainOptions[0] || '';
+      const address = `${form.local.trim()}@${host}`.toLowerCase();
+      return adminApi.createUser({
+        username: form.username.trim() || undefined,
+        address,
+        password: form.password,
+        name: form.name.trim() || undefined,
+        quota_mb: Number(form.quota_mb) || undefined,
+      });
+    },
     onSuccess: () => {
       toast.success('Mailbox created');
       setCreateOpen(false);
-      setForm({ username: '', address: '', password: '', name: '', quota_mb: '1024' });
+      setForm({ local: '', domain: domain || '', username: '', password: '', name: '', quota_mb: '1024' });
       refresh();
     },
     onError: (err: { response?: { data?: { message?: string } } }) =>
@@ -86,8 +133,8 @@ export function AdminUsers() {
 
   const resetPassword = useMutation({
     mutationFn: () => adminApi.resetPassword(passwordUser!.id),
-    onSuccess: ({ data }) => {
-      setGeneratedPassword(data.password);
+    onSuccess: ({ data: res }) => {
+      setGeneratedPassword(res.password);
       setNewPassword('');
       toast.success('Temporary password generated');
     },
@@ -106,7 +153,10 @@ export function AdminUsers() {
       toast.error(err.response?.data?.message ?? 'Quota update failed'),
   });
 
-  const users = data?.data ?? [];
+  const openCreate = (host?: string) => {
+    setForm((f) => ({ ...f, domain: host || domain || domainOptions[0] || f.domain }));
+    setCreateOpen(true);
+  };
 
   return (
     <AdminShell>
@@ -114,9 +164,41 @@ export function AdminUsers() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Users</h1>
-            <p className="text-sm text-gray-500 mt-1">Create and manage WildDuck mailboxes</p>
+            <p className="text-sm text-gray-500 mt-1">Mailboxes grouped by domain</p>
           </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>Create mailbox</Button>
+          <Button size="sm" onClick={() => openCreate()} disabled={!domainOptions.length && !domain}>
+            Create mailbox
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setDomain('')}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+              !domain
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-300 hover:bg-stone-100 dark:hover:bg-zinc-800',
+            )}
+          >
+            All domains
+          </button>
+          {domainOptions.map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setDomain(name)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-xs font-medium border transition-colors',
+                domain === name
+                  ? 'bg-brand-600 text-white border-brand-600'
+                  : 'border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-300 hover:bg-stone-100 dark:hover:bg-zinc-800',
+              )}
+            >
+              {name}
+            </button>
+          ))}
         </div>
 
         <form
@@ -126,105 +208,55 @@ export function AdminUsers() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search username or address"
+            placeholder={domain ? `Search in ${domain}` : 'Search username or address'}
             className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
           />
           <Button type="submit" size="sm" variant="secondary">Search</Button>
         </form>
 
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 overflow-x-auto">
-          {isLoading ? (
-            <p className="p-6 text-sm text-gray-500">Loading…</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-gray-500 border-b border-gray-100 dark:border-zinc-800">
-                <tr>
-                  <th className="px-4 py-3">Mailbox</th>
-                  <th className="px-4 py-3">Quota</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{user.name || user.username}</p>
-                      <p className="text-xs text-gray-500">{user.address}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{formatQuota(user)}</td>
-                    <td className="px-4 py-3">
-                      {user.disabled ? (
-                        <span className="text-xs font-semibold text-red-600">Disabled</span>
-                      ) : user.suspended ? (
-                        <span className="text-xs font-semibold text-amber-600">Suspended</span>
-                      ) : (
-                        <span className="text-xs font-semibold text-teal-700">Active</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.env_admin || user.role === 'admin' ? (
-                        <span className="text-xs font-semibold text-brand-700">Admin{user.env_admin ? ' (env)' : ''}</span>
-                      ) : (
-                        <span className="text-xs text-gray-500">User</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateUser.mutate({ id: user.id, body: { disabled: !user.disabled } })}
-                        >
-                          {user.disabled ? 'Enable' : 'Disable'}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                          setPasswordUser(user);
-                          setNewPassword('');
-                          setGeneratedPassword('');
-                        }}>
-                          Password
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setQuotaUser(user);
-                            setQuotaMb(String(Math.round((user.quota?.allowed ?? 0) / 1024 / 1024) || 1024));
-                          }}
-                        >
-                          Quota
-                        </Button>
-                        {!user.env_admin && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setRole.mutate({
-                              email: user.address,
-                              role: user.role === 'admin' ? 'user' : 'admin',
-                            })}
-                          >
-                            {user.role === 'admin' ? 'Revoke admin' : 'Make admin'}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => {
-                            if (window.confirm(`Delete mailbox ${user.address}?`)) deleteUser.mutate(user.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {isLoading ? (
+          <p className="p-6 text-sm text-gray-500 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800">
+            Loading…
+          </p>
+        ) : visibleGroups.length === 0 ? (
+          <p className="p-6 text-sm text-gray-500 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800">
+            No mailboxes{domain ? ` on ${domain}` : ''}.
+          </p>
+        ) : (
+          visibleGroups.map(([name, rows]) => (
+            <div key={name} className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 overflow-x-auto">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{name}</p>
+                  <p className="text-xs text-gray-500">{rows.length} mailbox{rows.length === 1 ? '' : 'es'}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setDomain(name); openCreate(name); }}
+                >
+                  Add to {name}
+                </Button>
+              </div>
+              <UserTable
+                users={rows}
+                onDisable={(user) => updateUser.mutate({ id: user.id, body: { disabled: !user.disabled } })}
+                onPassword={(user) => { setPasswordUser(user); setNewPassword(''); setGeneratedPassword(''); }}
+                onQuota={(user) => {
+                  setQuotaUser(user);
+                  setQuotaMb(String(Math.round((user.quota?.allowed ?? 0) / 1024 / 1024) || 1024));
+                }}
+                onRole={(user) => setRole.mutate({
+                  email: user.address,
+                  role: user.role === 'admin' ? 'user' : 'admin',
+                })}
+                onDelete={(user) => {
+                  if (window.confirm(`Delete mailbox ${user.address}?`)) deleteUser.mutate(user.id);
+                }}
+              />
+            </div>
+          ))
+        )}
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create mailbox">
@@ -232,14 +264,27 @@ export function AdminUsers() {
           className="px-6 py-4 space-y-3"
           onSubmit={(e) => { e.preventDefault(); createUser.mutate(); }}
         >
-          <input
-            required
-            type="email"
-            placeholder="user@repod.online"
-            value={form.address}
-            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-            className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800"
-          />
+          <div className="flex gap-2">
+            <input
+              required
+              placeholder="local part"
+              value={form.local}
+              onChange={(e) => setForm((f) => ({ ...f, local: e.target.value.replace(/@/g, '') }))}
+              className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800"
+            />
+            <span className="self-center text-gray-400">@</span>
+            <select
+              required
+              value={form.domain}
+              onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
+              className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800"
+            >
+              <option value="">Select domain</option>
+              {domainOptions.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
           <input
             placeholder="Username (optional)"
             value={form.username}
@@ -326,5 +371,77 @@ export function AdminUsers() {
         </form>
       </Modal>
     </AdminShell>
+  );
+}
+
+function UserTable({
+  users,
+  onDisable,
+  onPassword,
+  onQuota,
+  onRole,
+  onDelete,
+}: {
+  users: AdminUser[];
+  onDisable: (user: AdminUser) => void;
+  onPassword: (user: AdminUser) => void;
+  onQuota: (user: AdminUser) => void;
+  onRole: (user: AdminUser) => void;
+  onDelete: (user: AdminUser) => void;
+}) {
+  return (
+    <table className="w-full text-sm">
+      <thead className="text-left text-xs uppercase text-gray-500 border-b border-gray-100 dark:border-zinc-800">
+        <tr>
+          <th className="px-4 py-3">Mailbox</th>
+          <th className="px-4 py-3">Quota</th>
+          <th className="px-4 py-3">Status</th>
+          <th className="px-4 py-3">Role</th>
+          <th className="px-4 py-3" />
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
+        {users.map((user) => (
+          <tr key={user.id}>
+            <td className="px-4 py-3">
+              <p className="font-medium text-gray-900 dark:text-gray-100">{user.name || user.username}</p>
+              <p className="text-xs text-gray-500">{user.address}</p>
+            </td>
+            <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{formatQuota(user)}</td>
+            <td className="px-4 py-3">
+              {user.disabled ? (
+                <span className="text-xs font-semibold text-red-600">Disabled</span>
+              ) : user.suspended ? (
+                <span className="text-xs font-semibold text-amber-600">Suspended</span>
+              ) : (
+                <span className="text-xs font-semibold text-teal-700">Active</span>
+              )}
+            </td>
+            <td className="px-4 py-3">
+              {user.env_admin || user.role === 'admin' ? (
+                <span className="text-xs font-semibold text-brand-700">Admin{user.env_admin ? ' (env)' : ''}</span>
+              ) : (
+                <span className="text-xs text-gray-500">User</span>
+              )}
+            </td>
+            <td className="px-4 py-3">
+              <div className="flex flex-wrap justify-end gap-1">
+                <Button size="sm" variant="outline" onClick={() => onDisable(user)}>
+                  {user.disabled ? 'Enable' : 'Disable'}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onPassword(user)}>Password</Button>
+                <Button size="sm" variant="outline" onClick={() => onQuota(user)}>Quota</Button>
+                {!user.env_admin && (
+                  <Button size="sm" variant="outline" onClick={() => onRole(user)}>
+                    {user.role === 'admin' ? 'Revoke admin' : 'Make admin'}
+                  </Button>
+                )}
+                <Button size="sm" variant="danger" onClick={() => onDelete(user)}>Delete</Button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

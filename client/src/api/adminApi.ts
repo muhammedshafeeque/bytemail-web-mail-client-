@@ -50,9 +50,9 @@ export interface AdminAlias {
 export const adminApi = {
   dashboard: () => api.get<{ success: boolean; data: AdminDashboard }>('/admin/dashboard'),
 
-  listUsers: (query = '', page = 1) =>
+  listUsers: (query = '', page = 1, domain = '') =>
     api.get<{ success: boolean; total: number; page: number; data: AdminUser[] }>('/admin/users', {
-      params: { query, page, limit: 25 },
+      params: { query, page, limit: 100, domain: domain || undefined },
     }),
 
   createUser: (body: { address: string; password: string; name?: string; username?: string; quota_mb?: number }) =>
