@@ -8,6 +8,7 @@ import {
 
 const CreateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(80),
+  expires_in: z.enum(['7d', '30d', '90d', '1y', 'never']).optional().default('never'),
 });
 
 export async function listApiKeysHandler(req: Request, res: Response): Promise<void> {
@@ -16,8 +17,8 @@ export async function listApiKeysHandler(req: Request, res: Response): Promise<v
 }
 
 export async function createApiKeyHandler(req: Request, res: Response): Promise<void> {
-  const { name } = CreateSchema.parse(req.body);
-  const created = await createApiKey(req.user!.userId, name);
+  const { name, expires_in } = CreateSchema.parse(req.body);
+  const created = await createApiKey(req.user!.userId, name, expires_in);
   res.status(201).json({ success: true, data: created });
 }
 

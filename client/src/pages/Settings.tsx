@@ -153,8 +153,11 @@ export function Settings() {
           ))}
         </aside>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-8">
+        <main className="flex-1 overflow-y-auto min-w-0">
+          <div className={cn(
+            'mx-auto px-6 py-8 w-full',
+            activeSection === 'api-keys' ? 'max-w-none' : 'max-w-2xl',
+          )}>
             <div className="flex items-center gap-3 mb-8 md:hidden">
               <Link to="/" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                 <ArrowLeft className="h-5 w-5 text-gray-500" />

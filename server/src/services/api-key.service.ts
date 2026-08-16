@@ -4,15 +4,25 @@ import { env } from '../config/env';
 import { ApiKey, IApiKey } from '../models/ApiKey.model';
 import { User } from '../models/User.model';
 
+export type ApiKeyExpiry = '7d' | '30d' | '90d' | '1y' | 'never';
+
 const MAX_ACTIVE_KEYS = 10;
 const PREFIX_LENGTH = 10;
 const LAST_USED_THROTTLE_MS = 60_000;
+
+const EXPIRY_MS: Record<Exclude<ApiKeyExpiry, 'never'>, number> = {
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+  '1y': 365 * 24 * 60 * 60 * 1000,
+};
 
 export interface PublicApiKey {
   id: string;
   name: string;
   prefix: string;
   last_used_at: Date | null;
+  expires_at: Date | null;
   created_at: Date;
 }
 
@@ -34,6 +44,7 @@ function toPublic(doc: IApiKey): PublicApiKey {
     name: doc.name,
     prefix: doc.prefix,
     last_used_at: doc.last_used_at,
+    expires_at: doc.expires_at,
     created_at: doc.created_at,
   };
 }
@@ -47,7 +58,11 @@ export async function listApiKeys(userId: string): Promise<PublicApiKey[]> {
   return keys.map(toPublic);
 }
 
-export async function createApiKey(userId: string, name: string): Promise<CreatedApiKey> {
+export async function createApiKey(
+  userId: string,
+  name: string,
+  expiresIn: ApiKeyExpiry = 'never',
+): Promise<CreatedApiKey> {
   const active = await ApiKey.countDocuments({
     user_id: new Types.ObjectId(userId),
     revoked_at: null,
@@ -58,11 +73,13 @@ export async function createApiKey(userId: string, name: string): Promise<Create
   }
 
   const raw = generateRawKey();
+  const expires_at = expiresIn === 'never' ? null : new Date(Date.now() + EXPIRY_MS[expiresIn]);
   const doc = await ApiKey.create({
     user_id: new Types.ObjectId(userId),
     name: name.trim(),
     prefix: raw.slice(0, PREFIX_LENGTH),
     key_hash: hashApiKey(raw),
+    expires_at,
   });
 
   return { ...toPublic(doc), key: raw };
@@ -93,6 +110,7 @@ export async function authenticateApiKey(
     revoked_at: null,
   });
   if (!doc) return null;
+  if (doc.expires_at && doc.expires_at.getTime() <= Date.now()) return null;
 
   const user = await User.findById(doc.user_id).select('email').lean();
   if (!user) return null;

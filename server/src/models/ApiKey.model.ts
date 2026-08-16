@@ -7,6 +7,7 @@ export interface IApiKey extends Document {
   key_hash: string;
   last_used_at: Date | null;
   revoked_at: Date | null;
+  expires_at: Date | null;
   created_at: Date;
 }
 
@@ -17,6 +18,7 @@ const ApiKeySchema = new Schema<IApiKey>({
   key_hash: { type: String, required: true, unique: true },
   last_used_at: { type: Date, default: null },
   revoked_at: { type: Date, default: null },
+  expires_at: { type: Date, default: null },
   created_at: { type: Date, default: Date.now },
 });
 
