@@ -59,6 +59,9 @@ interface WdMailbox {
 interface WdAddress {
   name?: string;
   address?: string;
+  email?: string;
+  addr?: string;
+  value?: WdAddress | WdAddress[];
 }
 
 interface WdAttachment {
@@ -84,9 +87,10 @@ interface WdMessage {
   deleted?: boolean;
   exp?: boolean;
   subject?: string;
-  from?: WdAddress;
-  to?: WdAddress | WdAddress[];
-  cc?: WdAddress | WdAddress[];
+  from?: WdAddress | WdAddress[] | string;
+  to?: WdAddress | WdAddress[] | string;
+  cc?: WdAddress | WdAddress[] | string;
+  envelope?: { from?: string; to?: string[] };
   date?: Date;
   idate?: Date;
   intro?: string;
@@ -115,15 +119,40 @@ function toObjectId(id: string): Types.ObjectId {
   return new Types.ObjectId(id);
 }
 
-function asAddressList(value: WdAddress | WdAddress[] | undefined): { name: string; email: string }[] {
+function parseAddressString(raw: string): { name: string; email: string } {
+  const trimmed = raw.trim();
+  const angled = trimmed.match(/^(?:"?([^"<]*)"?\s*)?<\s*([^>]+)\s*>$/);
+  if (angled) {
+    return { name: angled[1].trim(), email: angled[2].trim().toLowerCase() };
+  }
+  if (trimmed.includes('@')) return { name: '', email: trimmed.toLowerCase() };
+  return { name: trimmed, email: '' };
+}
+
+function asAddressList(value: unknown): { name: string; email: string }[] {
   if (!value) return [];
-  const list = Array.isArray(value) ? value : [value];
-  return list
-    .filter((a) => a && (a.address || a.name))
-    .map((a) => ({
-      name: a.name ?? '',
-      email: (a.address ?? '').toLowerCase(),
-    }));
+  if (typeof value === 'string') {
+    const parsed = parseAddressString(value);
+    return parsed.name || parsed.email ? [parsed] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => asAddressList(item));
+  }
+  if (typeof value === 'object') {
+    const obj = value as WdAddress;
+    if (obj.value) return asAddressList(obj.value);
+    const email = String(obj.address || obj.email || obj.addr || '').trim().toLowerCase();
+    const name = String(obj.name || '').trim();
+    if (!email && !name) return [];
+    return [{ name, email }];
+  }
+  return [];
+}
+
+function mapFrom(msg: WdMessage): { name: string; email: string } {
+  return asAddressList(msg.from)[0]
+    ?? asAddressList(msg.envelope?.from)[0]
+    ?? { name: '', email: '' };
 }
 
 function htmlFromMessage(msg: WdMessage): string {
@@ -208,7 +237,7 @@ function mapListEmail(msg: WdMessage, folderKey: string, mailboxId: string): Fet
     folder: folderKey,
     message_id: msg.messageId ?? '',
     thread_id: msg.thread?.toString() ?? String(msg.uid),
-    from: asAddressList(msg.from)[0] ?? { name: '', email: '' },
+    from: mapFrom(msg),
     to: asAddressList(msg.to),
     cc: asAddressList(msg.cc),
     subject: msg.subject ?? '(no subject)',
@@ -234,6 +263,7 @@ const LIST_PROJECTION = {
   from: 1,
   to: 1,
   cc: 1,
+  envelope: 1,
   date: 1,
   idate: 1,
   intro: 1,

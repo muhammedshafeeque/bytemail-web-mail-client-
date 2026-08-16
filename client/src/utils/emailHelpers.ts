@@ -6,7 +6,29 @@ export function formatEmailAddress(addr: EmailAddress): string {
 }
 
 export function formatRecipientList(addrs: EmailAddress[]): string {
-  return addrs.map((a) => a.name || a.email).join(', ');
+  return addrs.map((a) => a.name || a.email).filter(Boolean).join(', ');
+}
+
+export function displayNameFromAddress(addr?: EmailAddress | null): string {
+  const name = addr?.name?.trim() ?? '';
+  const email = addr?.email?.trim() ?? '';
+  if (name) return name;
+  if (email.includes('@')) return email.split('@')[0];
+  if (email) return email;
+  return '';
+}
+
+export function getSenderLabel(email: Email, folder?: string): string {
+  const outbound = folder === 'Sent' || folder === 'Drafts';
+  const label = outbound
+    ? displayNameFromAddress(email.to?.[0]) || displayNameFromAddress(email.from)
+    : displayNameFromAddress(email.from);
+  return label || 'Unknown sender';
+}
+
+export function getEmailTitle(email: Email): string {
+  const title = email.subject?.trim();
+  return title || '(no subject)';
 }
 
 export function getThreadEmails(emails: Email[], threadId: string): Email[] {

@@ -86,9 +86,9 @@ export function EmailViewer({ email, loading }: EmailViewerProps) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {email.from.name || email.from.email}
+                        {email.from.name || email.from.email || 'Unknown sender'}
                       </span>
-                      {email.from.name && (
+                      {email.from.email && (
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           &lt;{email.from.email}&gt;
                         </span>

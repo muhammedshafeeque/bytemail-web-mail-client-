@@ -30,7 +30,7 @@ export function EmailList({
   const virtualizer = useVirtualizer({
     count: emails.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 82,
+    estimateSize: () => 88,
     overscan: 5,
   });
 

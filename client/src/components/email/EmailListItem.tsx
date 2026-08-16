@@ -5,6 +5,7 @@ import { formatEmailDate } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
 import { useStar } from '@/hooks/useEmails';
 import { EmailAvatar } from './EmailAvatar';
+import { getEmailTitle, getSenderLabel } from '@/utils/emailHelpers';
 
 interface EmailListItemProps {
   email: Email;
@@ -46,7 +47,13 @@ export const EmailListItem = memo(function EmailListItem({
         <span className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-brand-500" />
       )}
 
-      <EmailAvatar from={email.from} size="md" />
+      <EmailAvatar
+        from={{
+          name: getSenderLabel(email, folder),
+          email: email.from?.email || email.to?.[0]?.email || '',
+        }}
+        size="md"
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
@@ -58,7 +65,7 @@ export const EmailListItem = memo(function EmailListItem({
                 : 'font-semibold text-stone-900 dark:text-stone-50'
             )}
           >
-            {email.from.name || email.from.email}
+            {getSenderLabel(email, folder)}
           </span>
           <span
             className={cn(
@@ -78,10 +85,10 @@ export const EmailListItem = memo(function EmailListItem({
               'flex-1 min-w-0 truncate text-[13px] leading-snug',
               email.is_read
                 ? 'font-normal text-stone-600 dark:text-stone-400'
-                : 'font-medium text-stone-800 dark:text-stone-100'
+                : 'font-semibold text-stone-800 dark:text-stone-100'
             )}
           >
-            {email.subject || '(no subject)'}
+            {getEmailTitle(email)}
           </p>
           {hasAttachments && (
             <Paperclip className="h-3 w-3 text-stone-400 flex-shrink-0" />
