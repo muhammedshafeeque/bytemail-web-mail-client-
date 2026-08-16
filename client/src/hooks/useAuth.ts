@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import { authApi } from '@/api/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -66,16 +67,21 @@ export function useLogout() {
 }
 
 export function useMe() {
-  const { isAuthenticated, setUser } = useAuthStore();
+  const { isAuthenticated, setUser, setAccessToken } = useAuthStore();
 
   return useQuery({
     queryKey: ['me'],
     queryFn: async () => {
+      if (!useAuthStore.getState().accessToken) {
+        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        setAccessToken(data.data.accessToken as string);
+      }
       const { data } = await authApi.me();
       setUser(data.data);
       return data.data;
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }

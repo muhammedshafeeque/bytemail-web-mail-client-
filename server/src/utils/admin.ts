@@ -3,7 +3,7 @@ import { env } from '../config/env';
 export function envAdminEmails(): string[] {
   return env.ADMIN_EMAILS
     .split(',')
-    .map((value) => value.trim().toLowerCase())
+    .map((value) => value.replace(/\r/g, '').trim().toLowerCase())
     .filter(Boolean);
 }
 

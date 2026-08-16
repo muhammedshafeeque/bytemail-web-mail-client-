@@ -10,7 +10,7 @@ function required(key: string): string {
 }
 
 function optional(key: string, fallback: string): string {
-  return process.env[key] ?? fallback;
+  return (process.env[key] ?? fallback).replace(/\r/g, '').trim();
 }
 
 export const env = {
