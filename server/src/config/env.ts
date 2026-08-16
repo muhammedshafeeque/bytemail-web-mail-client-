@@ -38,4 +38,6 @@ export const env = {
   VAPID_PUBLIC_KEY: optional('VAPID_PUBLIC_KEY', ''),
   VAPID_PRIVATE_KEY: optional('VAPID_PRIVATE_KEY', ''),
   VAPID_EMAIL: optional('VAPID_EMAIL', 'admin@repod.online'),
+
+  ADMIN_EMAILS: optional('ADMIN_EMAILS', 'superadmin@repod.online'),
 } as const;

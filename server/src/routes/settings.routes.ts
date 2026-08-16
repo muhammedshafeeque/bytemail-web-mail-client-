@@ -4,6 +4,17 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { User } from '../models/User.model';
 import { z } from 'zod';
 import { comparePassword, hashPassword } from '../utils/password';
+import {
+  listSessionsHandler,
+  revokeAllSessionsHandler,
+  revokeOtherSessionsHandler,
+  revokeSessionHandler,
+} from '../controllers/session.controller';
+import {
+  disableTwoFactor,
+  enableTwoFactor,
+  setupTwoFactor,
+} from '../controllers/two-factor.controller';
 
 const router = Router();
 router.use(authMiddleware);
@@ -60,5 +71,14 @@ router.put('/password', asyncHandler(async (req: Request, res: Response) => {
   await user.save();
   res.json({ success: true, message: 'Password updated' });
 }));
+
+router.get('/sessions', asyncHandler(listSessionsHandler));
+router.delete('/sessions', asyncHandler(revokeOtherSessionsHandler));
+router.delete('/sessions/all', asyncHandler(revokeAllSessionsHandler));
+router.delete('/sessions/:id', asyncHandler(revokeSessionHandler));
+
+router.post('/2fa/setup', asyncHandler(setupTwoFactor));
+router.post('/2fa/enable', asyncHandler(enableTwoFactor));
+router.post('/2fa/disable', asyncHandler(disableTwoFactor));
 
 export default router;

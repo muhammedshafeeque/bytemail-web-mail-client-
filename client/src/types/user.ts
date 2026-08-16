@@ -21,6 +21,10 @@ export interface User {
   preferences: UserPreferences;
   last_login: string;
   created_at: string;
+  two_factor_enabled?: boolean;
+  two_factor_enabled_at?: string | null;
+  role?: 'admin' | 'user';
+  is_admin?: boolean;
 }
 
 export interface Contact {
@@ -40,3 +44,10 @@ export interface AuthResponse {
   accessToken: string;
   user: User;
 }
+
+export interface TwoFactorChallenge {
+  requires_2fa: true;
+  ticket: string;
+}
+
+export type LoginResult = AuthResponse | TwoFactorChallenge;

@@ -1,18 +1,14 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { ArrowLeft, User, Palette, PenLine, Bell, Keyboard, Shield, KeyRound } from 'lucide-react';
 import { ApiKeysPanel } from '@/components/settings/ApiKeysPanel';
+import { AccountPanel } from '@/components/settings/AccountPanel';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '@/components/compose/RichTextEditor';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
-import { useLogout } from '@/hooks/useAuth';
 import api from '@/api/client';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
@@ -58,25 +54,11 @@ const SECTIONS = [
   { id: 'account', label: 'Account', icon: Shield },
 ];
 
-const passwordSchema = z.object({
-  current_password: z.string().min(1),
-  new_password: z.string().min(8, 'Must be at least 8 characters'),
-  confirm_password: z.string(),
-}).refine((d) => d.new_password === d.confirm_password, {
-  message: "Passwords don't match",
-  path: ['confirm_password'],
-});
-
 export function Settings() {
   const { user, updateUser } = useAuthStore();
   const [activeSection, setActiveSection] = useState('profile');
   const [signature, setSignature] = useState(user?.preferences?.signature ?? '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const logout = useLogout();
-
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
-    resolver: zodResolver(passwordSchema),
-  });
 
   const updateSettings = async (updates: Record<string, unknown>) => {
     const { data } = await api.put('/settings', updates);
@@ -113,14 +95,6 @@ export function Settings() {
       toast.error('Failed to save signature');
     }
   };
-
-  const changePassword = useMutation({
-    mutationFn: (data: { current_password: string; new_password: string }) =>
-      api.put('/settings/password', data),
-    onSuccess: () => { toast.success('Password changed'); reset(); },
-    onError: (err: { response?: { data?: { message?: string } } }) =>
-      toast.error(err.response?.data?.message ?? 'Failed to change password'),
-  });
 
   if (!user) return null;
 
@@ -355,47 +329,8 @@ export function Settings() {
             )}
 
             {activeSection === 'account' && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Account</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Security and account settings</p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Change Password</h3>
-                  <form onSubmit={handleSubmit((data) => changePassword.mutate(data as { current_password: string; new_password: string }))} className="space-y-3">
-                    <input
-                      {...register('current_password')}
-                      type="password"
-                      placeholder="Current password"
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                    <input
-                      {...register('new_password')}
-                      type="password"
-                      placeholder="New password (min 8 chars)"
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                    <input
-                      {...register('confirm_password')}
-                      type="password"
-                      placeholder="Confirm new password"
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                    {errors.confirm_password && (
-                      <p className="text-xs text-red-500">{errors.confirm_password.message as string}</p>
-                    )}
-                    <Button type="submit" size="sm" loading={changePassword.isPending}>Update password</Button>
-                  </form>
-                </div>
-
-                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900 p-6 space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Sign out</h3>
-                  <p className="text-xs text-gray-500">You'll be signed out of ByteMail on this device.</p>
-                  <Button variant="danger" size="sm" onClick={() => logout.mutate()} loading={logout.isPending}>
-                    Sign out
-                  </Button>
-                </div>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <AccountPanel />
               </motion.div>
             )}
           </div>

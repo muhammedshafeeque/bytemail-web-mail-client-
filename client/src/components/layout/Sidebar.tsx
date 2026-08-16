@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import {
   Inbox, Star, Send, FileText, AlertTriangle, Trash2,
-  Settings, Archive,
+  Settings, Archive, LayoutDashboard,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEmailStore } from '@/store/emailStore';
@@ -124,6 +124,26 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-stone-100 dark:border-zinc-800 py-2 flex-shrink-0 flex flex-col min-w-0 px-2">
+        {user?.is_admin && (
+          <Tooltip
+            content={sidebarCollapsed ? 'Platform' : ''}
+            side="right"
+            className={sidebarCollapsed ? 'inline-flex w-full justify-center' : 'flex w-full min-w-0'}
+          >
+            <Link
+              to="/admin"
+              className={cn(
+                'flex items-center min-w-0 text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors py-2.5 select-none rounded-xl',
+                sidebarCollapsed
+                  ? 'justify-center px-2 mx-auto w-12'
+                  : 'gap-3 w-full px-3'
+              )}
+            >
+              <LayoutDashboard className="h-5 w-5 flex-shrink-0 text-brand-600 dark:text-brand-400" />
+              {!sidebarCollapsed && <span>Platform</span>}
+            </Link>
+          </Tooltip>
+        )}
         <Tooltip
           content={sidebarCollapsed ? 'Settings' : ''}
           side="right"

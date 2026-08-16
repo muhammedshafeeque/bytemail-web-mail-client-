@@ -4,7 +4,7 @@ import { useUiStore } from '@/store/uiStore';
 import { MobileNav } from './MobileNav';
 import { ComposeModal } from '@/components/compose/ComposeModal';
 import { SearchBar } from '@/components/search/SearchBar';
-import { Search, Settings, Menu } from 'lucide-react';
+import { Search, Settings, Menu, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { Link } from 'react-router-dom';
@@ -71,6 +71,15 @@ export function AppShell({ children }: AppShellProps) {
         </button>
 
         <div className="flex items-center gap-0.5 ml-auto">
+          {user?.is_admin && (
+            <Link
+              to="/admin"
+              title="Platform"
+              className="p-2.5 rounded-xl text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center"
+            >
+              <LayoutDashboard className="h-5 w-5" />
+            </Link>
+          )}
           <Link
             to="/settings"
             title="Settings"

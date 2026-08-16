@@ -7,7 +7,7 @@ import {
   Shield, Zap, Globe, ChevronRight, Inbox,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useLogin } from '@/hooks/useAuth';
+import { useLogin, useLoginTwoFactor, isTwoFactorChallenge } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { getStoredTheme, setStoredTheme, ThemeValue } from '@/hooks/useTheme';
@@ -111,8 +111,12 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
 
 export function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | 'code' | null>(null);
+  const [twoFactorTicket, setTwoFactorTicket] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
   const loginMutation = useLogin();
+  const loginTwoFactor = useLoginTwoFactor();
 
   const {
     register,
@@ -286,14 +290,85 @@ export function Login() {
                   repod.online
                 </div>
                 <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-1.5">
-                  Welcome back
+                  {twoFactorTicket ? 'Two-factor verification' : 'Welcome back'}
                 </h2>
                 <p className="text-sm text-stone-500 dark:text-stone-400">
-                  Sign in with your mailbox email or username
+                  {twoFactorTicket
+                    ? (useBackupCode ? 'Enter a backup code' : 'Enter the 6-digit code from your authenticator app')
+                    : 'Sign in with your mailbox email or username'}
                 </p>
               </motion.div>
 
-              <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-5">
+              {twoFactorTicket ? (
+                <form
+                  className="space-y-5"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!twoFactorCode.trim()) return;
+                    loginTwoFactor.mutate({ ticket: twoFactorTicket, code: twoFactorCode.trim() });
+                  }}
+                >
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wide mb-2">
+                      {useBackupCode ? 'Backup code' : 'Authenticator code'}
+                    </label>
+                    <div className="relative">
+                      <div className={cn(
+                        'absolute left-3.5 top-1/2 -translate-y-1/2',
+                        focusedField === 'code' ? 'text-brand-500' : 'text-stone-400'
+                      )}>
+                        <Shield className="h-4 w-4" />
+                      </div>
+                      <input
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value)}
+                        autoComplete="one-time-code"
+                        inputMode={useBackupCode ? 'text' : 'numeric'}
+                        placeholder={useBackupCode ? 'xxxx-xxxx' : '123456'}
+                        onFocus={() => setFocusedField('code')}
+                        onBlur={() => setFocusedField(null)}
+                        className={cn(
+                          'w-full pl-10 pr-4 py-3 text-sm rounded-xl border-2 bg-stone-50 dark:bg-zinc-800 text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none tracking-widest',
+                          focusedField === 'code'
+                            ? 'border-brand-500 bg-white dark:bg-zinc-900 shadow-[0_0_0_4px_rgba(13,148,136,0.12)]'
+                            : 'border-transparent'
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    loading={loginTwoFactor.isPending}
+                    className="w-full rounded-xl h-12 text-sm font-semibold bg-gradient-to-r from-brand-600 to-teal-500 hover:from-brand-700 hover:to-teal-600 border-0 shadow-lg shadow-brand-500/25"
+                  >
+                    Verify and sign in
+                  </Button>
+                  <div className="flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      className="text-brand-700 dark:text-brand-400 hover:underline"
+                      onClick={() => { setUseBackupCode((v) => !v); setTwoFactorCode(''); }}
+                    >
+                      {useBackupCode ? 'Use authenticator code' : 'Use a backup code'}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-stone-500 hover:underline"
+                      onClick={() => { setTwoFactorTicket(null); setTwoFactorCode(''); }}
+                    >
+                      Back to sign in
+                    </button>
+                  </div>
+                </form>
+              ) : (
+              <form onSubmit={handleSubmit((data) => {
+                loginMutation.mutate(data, {
+                  onSuccess: (result) => {
+                    if (isTwoFactorChallenge(result)) setTwoFactorTicket(result.ticket);
+                  },
+                });
+              })} className="space-y-5">
                 <motion.div
                   initial={{ opacity: 0, x: -12 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -422,6 +497,7 @@ export function Login() {
                   </Button>
                 </motion.div>
               </form>
+              )}
 
               <motion.div
                 initial={{ opacity: 0 }}

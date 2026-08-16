@@ -18,6 +18,7 @@ import draftRoutes from './routes/draft.routes';
 import settingsRoutes from './routes/settings.routes';
 import apiKeyRoutes from './routes/api-key.routes';
 import v1Routes from './routes/v1.routes';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/drafts', draftRoutes);
 app.use('/api/settings/api-keys', apiKeyRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/v1', v1Routes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

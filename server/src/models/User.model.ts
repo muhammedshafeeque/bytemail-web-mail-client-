@@ -18,6 +18,13 @@ export interface IUser extends Document {
   push_subscriptions: object[];
   last_login: Date;
   created_at: Date;
+  role?: 'admin' | 'user';
+  two_factor?: {
+    enabled: boolean;
+    secret?: string;
+    backup_hashes: string[];
+    enabled_at?: Date | null;
+  };
 }
 
 const UserSchema = new Schema<IUser>({
@@ -38,6 +45,13 @@ const UserSchema = new Schema<IUser>({
   push_subscriptions: [{ type: Schema.Types.Mixed }],
   last_login: { type: Date, default: Date.now },
   created_at: { type: Date, default: Date.now },
+  role: { type: String, enum: ['admin', 'user'], default: 'user' },
+  two_factor: {
+    enabled: { type: Boolean, default: false },
+    secret: { type: String, default: '' },
+    backup_hashes: { type: [String], default: [] },
+    enabled_at: { type: Date, default: null },
+  },
 });
 
 export const User = model<IUser>('User', UserSchema);

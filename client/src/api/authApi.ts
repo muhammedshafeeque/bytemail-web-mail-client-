@@ -1,9 +1,12 @@
 import api from './client';
-import { AuthResponse, LoginPayload, User } from '@/types/user';
+import { AuthResponse, LoginPayload, LoginResult, User } from '@/types/user';
 
 export const authApi = {
   login: (payload: LoginPayload) =>
-    api.post<{ success: boolean; data: AuthResponse }>('/auth/login', payload),
+    api.post<{ success: boolean; data: LoginResult }>('/auth/login', payload),
+
+  loginTwoFactor: (payload: { ticket: string; code: string }) =>
+    api.post<{ success: boolean; data: AuthResponse }>('/auth/login/2fa', payload),
 
   logout: () => api.post('/auth/logout'),
 

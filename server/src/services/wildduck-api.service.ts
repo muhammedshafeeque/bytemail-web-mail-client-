@@ -49,7 +49,7 @@ function authToken(token?: string): string {
   return token || env.WILDDUCK_ACCESS_TOKEN;
 }
 
-async function wildduckRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function wildduckRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const token = options.skipToken ? '' : authToken(options.token);
   const url = new URL(path.startsWith('http') ? path : `${apiBase()}${path}`);
 

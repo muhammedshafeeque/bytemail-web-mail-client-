@@ -6,11 +6,26 @@ import { Login } from '@/pages/Login';
 import { Mail } from '@/pages/Mail';
 import { Settings } from '@/pages/Settings';
 import { NotFound } from '@/pages/NotFound';
+import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+import { AdminUsers } from '@/pages/admin/AdminUsers';
+import { AdminDomains } from '@/pages/admin/AdminDomains';
+import { AdminDkim } from '@/pages/admin/AdminDkim';
+import { AdminAliases } from '@/pages/admin/AdminAliases';
+import { useMe } from '@/hooks/useAuth';
 import { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user } = useAuthStore();
+  const { isLoading } = useMe();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.is_admin === undefined && isLoading) return null;
+  if (!user?.is_admin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -22,6 +37,7 @@ function PublicRoute({ children }: { children: ReactNode }) {
 
 function ThemeProvider({ children }: { children: ReactNode }) {
   useTheme();
+  useMe();
   return <>{children}</>;
 }
 
@@ -63,6 +79,26 @@ export default function App() {
               <Settings />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/admin"
+          element={<AdminRoute><AdminDashboard /></AdminRoute>}
+        />
+        <Route
+          path="/admin/users"
+          element={<AdminRoute><AdminUsers /></AdminRoute>}
+        />
+        <Route
+          path="/admin/domains"
+          element={<AdminRoute><AdminDomains /></AdminRoute>}
+        />
+        <Route
+          path="/admin/dkim"
+          element={<AdminRoute><AdminDkim /></AdminRoute>}
+        />
+        <Route
+          path="/admin/aliases"
+          element={<AdminRoute><AdminAliases /></AdminRoute>}
         />
         <Route path="*" element={<NotFound />} />
       </Routes>

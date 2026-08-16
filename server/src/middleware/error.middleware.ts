@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { WildduckApiError } from '../services/wildduck-api.service';
 
 export function errorMiddleware(
   err: Error,
@@ -15,6 +16,14 @@ export function errorMiddleware(
     url: req.url,
     method: req.method,
   });
+
+  if (err instanceof WildduckApiError) {
+    res.status(err.status >= 400 ? err.status : 502).json({
+      success: false,
+      message: err.message,
+    });
+    return;
+  }
 
   if (err instanceof ZodError) {
     res.status(400).json({
