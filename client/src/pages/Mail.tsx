@@ -158,13 +158,15 @@ export function Mail() {
         sidebar={<Sidebar />}
         list={listPanel}
         viewer={
-          <AnimatePresence mode="wait">
-            <EmailViewer
-              key={selectedUid ?? 'empty'}
-              email={selectedEmail ?? null}
-              loading={emailLoading && !!selectedUid}
-            />
-          </AnimatePresence>
+          <div className="flex-1 min-w-0 w-full h-full">
+            <AnimatePresence mode="wait">
+              <EmailViewer
+                key={selectedUid ?? 'empty'}
+                email={selectedEmail ?? null}
+                loading={emailLoading && !!selectedUid}
+              />
+            </AnimatePresence>
+          </div>
         }
         mobilePanel={mobilePanel}
       />

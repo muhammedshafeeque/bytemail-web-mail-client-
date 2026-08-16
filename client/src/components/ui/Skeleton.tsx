@@ -34,7 +34,7 @@ export function EmailListSkeleton() {
 
 export function EmailViewerSkeleton() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="w-full h-full p-6 lg:p-8 space-y-6">
       <Skeleton className="h-7 w-3/4" />
       <div className="flex items-center gap-3">
         <Skeleton className="h-11 w-11 rounded-full" />
