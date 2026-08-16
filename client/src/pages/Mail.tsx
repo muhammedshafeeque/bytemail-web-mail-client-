@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, MoreVertical, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ThreePanelLayout } from '@/components/layout/ThreePanelLayout';
@@ -67,21 +67,23 @@ export function Mail() {
   const shown = emails.length;
 
   const listPanel = (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-950">
-
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-stone-200 dark:border-zinc-800 flex-shrink-0">
-
-        {/* Select-all checkbox + dropdown */}
-        <div className="flex items-center mr-1" onClick={(e) => e.stopPropagation()}>
-          <div className="h-4 w-4 rounded border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 cursor-pointer transition-colors flex-shrink-0" />
-          <ChevronDown className="h-3.5 w-3.5 text-gray-500 ml-0.5 cursor-pointer" />
+    <div className="flex flex-col h-full bg-stone-50 dark:bg-zinc-950">
+      <div className="flex items-center gap-1 px-3 py-2.5 border-b border-stone-200/80 dark:border-zinc-800 flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[15px] font-semibold text-stone-900 dark:text-stone-50 truncate leading-tight">
+            {folderLabel}
+          </h2>
+          {total > 0 && (
+            <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-0.5">
+              {shown} of {total}
+            </p>
+          )}
         </div>
 
-        {/* Refresh */}
         <button
           onClick={handleSync}
           title="Refresh"
-          className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-2 rounded-lg text-stone-500 dark:text-stone-400 hover:bg-stone-200/70 dark:hover:bg-zinc-800 transition-colors"
         >
           <motion.div
             animate={{ rotate: isSyncing ? 360 : 0 }}
@@ -91,46 +93,31 @@ export function Mail() {
           </motion.div>
         </button>
 
-        {/* More options */}
         <button
           title="More"
-          className="p-2 rounded-xl text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-2 rounded-lg text-stone-500 dark:text-stone-400 hover:bg-stone-200/70 dark:hover:bg-zinc-800 transition-colors"
         >
           <MoreVertical className="h-4 w-4" />
         </button>
 
-        <div className="flex-1" />
-
-        {/* Pagination */}
         {total > 0 && (
-          <div className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
-            <span>1–{shown} of {total}</span>
+          <div className="flex items-center">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-stone-200/70 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-stone-500"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               disabled={!data?.has_more}
               onClick={() => setPage((p) => p + 1)}
-              className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-stone-200/70 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-stone-500"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         )}
-      </div>
-
-      {/* Folder name tab */}
-      <div className="px-4 pt-3 pb-1 flex-shrink-0">
-        <h2 className="text-sm font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-2">
-          {folderLabel}
-          {total > 0 && (
-            <span className="text-xs text-gray-400 font-normal">{total}</span>
-          )}
-        </h2>
       </div>
 
       <EmailList

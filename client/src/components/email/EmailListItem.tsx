@@ -1,9 +1,10 @@
 import { memo, useState } from 'react';
-import { Star } from 'lucide-react';
+import { Paperclip, Star } from 'lucide-react';
 import { Email } from '@/types/email';
 import { formatEmailDate } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
 import { useStar } from '@/hooks/useEmails';
+import { EmailAvatar } from './EmailAvatar';
 
 interface EmailListItemProps {
   email: Email;
@@ -20,6 +21,7 @@ export const EmailListItem = memo(function EmailListItem({
 }: EmailListItemProps) {
   const starMutation = useStar();
   const [hovered, setHovered] = useState(false);
+  const hasAttachments = (email.attachments?.length ?? 0) > 0;
 
   const handleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -32,90 +34,84 @@ export const EmailListItem = memo(function EmailListItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'flex items-center h-[52px] px-2 cursor-pointer select-none border-b border-stone-100 dark:border-zinc-800/80 transition-all duration-100 relative',
+        'relative flex items-start gap-3 px-3 py-3 mx-2 my-0.5 rounded-xl cursor-pointer select-none transition-colors duration-150',
         isSelected
-          ? 'bg-brand-50 dark:bg-brand-950/40 border-b-brand-100 dark:border-b-brand-900'
+          ? 'bg-brand-50 dark:bg-brand-950/50 ring-1 ring-brand-200/80 dark:ring-brand-800/80'
           : hovered
-          ? 'bg-stone-50 dark:bg-zinc-800/50'
-          : 'bg-white dark:bg-zinc-950'
+          ? 'bg-stone-100 dark:bg-zinc-800/70'
+          : 'bg-transparent'
       )}
     >
-      {/* Checkbox (on hover / selected) */}
-      <div
-        className={cn(
-          'flex-shrink-0 flex items-center justify-center w-8 transition-opacity duration-100',
-          hovered || isSelected ? 'opacity-100' : 'opacity-0'
+      {!email.is_read && (
+        <span className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-brand-500" />
+      )}
+
+      <EmailAvatar from={email.from} size="md" />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span
+            className={cn(
+              'flex-1 min-w-0 truncate text-[13px]',
+              email.is_read
+                ? 'font-medium text-stone-600 dark:text-stone-400'
+                : 'font-semibold text-stone-900 dark:text-stone-50'
+            )}
+          >
+            {email.from.name || email.from.email}
+          </span>
+          <span
+            className={cn(
+              'flex-shrink-0 text-[11px] tabular-nums',
+              email.is_read
+                ? 'text-stone-400 dark:text-stone-500'
+                : 'font-medium text-brand-700 dark:text-brand-400'
+            )}
+          >
+            {formatEmailDate(email.date)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p
+            className={cn(
+              'flex-1 min-w-0 truncate text-[13px] leading-snug',
+              email.is_read
+                ? 'font-normal text-stone-600 dark:text-stone-400'
+                : 'font-medium text-stone-800 dark:text-stone-100'
+            )}
+          >
+            {email.subject || '(no subject)'}
+          </p>
+          {hasAttachments && (
+            <Paperclip className="h-3 w-3 text-stone-400 flex-shrink-0" />
+          )}
+        </div>
+
+        {email.preview && (
+          <p className="mt-0.5 text-[12px] leading-snug text-stone-400 dark:text-stone-500 line-clamp-1">
+            {email.preview}
+          </p>
         )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="h-4 w-4 rounded border-2 border-gray-400 dark:border-gray-500 hover:border-gray-600 transition-colors" />
       </div>
 
-      {/* Star */}
       <button
         onClick={handleStar}
         className={cn(
-          'flex-shrink-0 flex items-center justify-center w-7 transition-opacity duration-100',
-          email.is_starred ? 'opacity-100' : hovered ? 'opacity-60' : 'opacity-0'
+          'flex-shrink-0 mt-0.5 p-1 rounded-md transition-opacity',
+          email.is_starred || hovered ? 'opacity-100' : 'opacity-0'
         )}
+        title={email.is_starred ? 'Unstar' : 'Star'}
       >
         <Star
           className={cn(
-            'h-4 w-4 transition-colors',
+            'h-3.5 w-3.5',
             email.is_starred
               ? 'text-amber-400 fill-amber-400'
-              : 'text-gray-400 hover:text-amber-400'
+              : 'text-stone-400 hover:text-amber-400'
           )}
-          fill={email.is_starred ? 'currentColor' : 'none'}
         />
       </button>
-
-      {/* Sender name — fixed width, bold if unread */}
-      <span
-        className={cn(
-          'flex-shrink-0 w-44 truncate text-sm mr-3',
-          email.is_read
-            ? 'font-normal text-stone-600 dark:text-stone-400'
-            : 'font-bold text-stone-900 dark:text-stone-50'
-        )}
-      >
-        {email.from.name || email.from.email}
-      </span>
-
-      {/* Subject + preview — fills remaining space */}
-      <span className="flex-1 min-w-0 truncate text-sm">
-        <span
-          className={cn(
-            email.is_read
-              ? 'font-normal text-stone-700 dark:text-stone-300'
-              : 'font-semibold text-stone-900 dark:text-stone-100'
-          )}
-        >
-          {email.subject || '(no subject)'}
-        </span>
-        {email.preview && (
-          <span className="font-normal text-stone-400 dark:text-stone-500">
-            {' – '}{email.preview}
-          </span>
-        )}
-      </span>
-
-      {/* Date */}
-      <span
-        className={cn(
-          'flex-shrink-0 text-xs ml-2 w-16 text-right',
-          email.is_read
-            ? 'font-normal text-stone-500 dark:text-stone-500'
-            : 'font-semibold text-stone-800 dark:text-stone-200'
-        )}
-      >
-        {formatEmailDate(email.date)}
-      </span>
-
-      {/* Unread dot */}
-      {!email.is_read && (
-        <div className="absolute left-1 h-2 w-2 rounded-full bg-brand-600" />
-      )}
     </div>
   );
 });

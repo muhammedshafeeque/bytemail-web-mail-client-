@@ -16,7 +16,7 @@ export function ThreePanelLayout({ sidebar, list, viewer, mobilePanel }: ThreePa
       <div className="flex flex-1 min-w-0 overflow-hidden">
         <div
           className={cn(
-            'w-full md:w-[320px] lg:w-[360px] xl:w-[400px] flex-shrink-0 flex flex-col border-r border-stone-200 dark:border-zinc-800 overflow-hidden',
+            'w-full md:w-[360px] lg:w-[400px] xl:w-[440px] flex-shrink-0 flex flex-col border-r border-stone-200 dark:border-zinc-800 overflow-hidden',
             'md:flex',
             mobilePanel === 'list' ? 'flex' : 'hidden'
           )}

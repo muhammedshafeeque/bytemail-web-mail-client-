@@ -14,16 +14,16 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function EmailListSkeleton() {
   return (
-    <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+    <div className="flex flex-col px-2 py-1">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 px-4 py-3">
+        <div key={i} className="flex items-start gap-3 px-3 py-3">
           <Skeleton className="h-9 w-9 rounded-full flex-shrink-0" />
-          <div className="flex-1 min-w-0 space-y-2 pt-1">
+          <div className="flex-1 min-w-0 space-y-2 pt-0.5">
             <div className="flex justify-between gap-2">
               <Skeleton className="h-3.5 w-28" />
               <Skeleton className="h-3 w-12" />
             </div>
-            <Skeleton className="h-3.5 w-48" />
+            <Skeleton className="h-3.5 w-4/5" />
             <Skeleton className="h-3 w-full" />
           </div>
         </div>
