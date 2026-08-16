@@ -1,4 +1,5 @@
 import { getRedis } from '../config/redis';
+import { env } from '../config/env';
 import { User } from '../models/User.model';
 
 const SESSION_TTL_SEC = 7 * 24 * 60 * 60;
@@ -45,10 +46,13 @@ export async function getCredentialsForUser(
 
   const session = await getWildduckSession(user.email);
   const wdUserId = session?.wdUserId || user.wildduck_id;
-  const token = session?.token;
+  const token = session?.token || env.WILDDUCK_ACCESS_TOKEN;
 
-  if (!wdUserId || !token) {
+  if (!wdUserId) {
     throw Object.assign(new Error('Session expired. Please sign in again.'), { status: 401 });
+  }
+  if (!token) {
+    throw Object.assign(new Error('Mail service is not configured.'), { status: 503 });
   }
 
   return { email: user.email, wdUserId, token };

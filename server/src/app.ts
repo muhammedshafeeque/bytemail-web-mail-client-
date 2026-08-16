@@ -16,6 +16,8 @@ import attachmentRoutes from './routes/attachment.routes';
 import notificationRoutes from './routes/notification.routes';
 import draftRoutes from './routes/draft.routes';
 import settingsRoutes from './routes/settings.routes';
+import apiKeyRoutes from './routes/api-key.routes';
+import v1Routes from './routes/v1.routes';
 
 const app = express();
 
@@ -30,7 +32,7 @@ app.use(cors({
   origin: env.CLIENT_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 }));
 
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -49,7 +51,9 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/drafts', draftRoutes);
+app.use('/api/settings/api-keys', apiKeyRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/v1', v1Routes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, User, Palette, PenLine, Bell, Keyboard, Shield } from 'lucide-react';
+import { ArrowLeft, User, Palette, PenLine, Bell, Keyboard, Shield, KeyRound } from 'lucide-react';
+import { ApiKeysPanel } from '@/components/settings/ApiKeysPanel';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
@@ -53,6 +54,7 @@ const SECTIONS = [
   { id: 'signature', label: 'Signature', icon: PenLine },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
+  { id: 'api-keys', label: 'API keys', icon: KeyRound },
   { id: 'account', label: 'Account', icon: Shield },
 ];
 
@@ -340,6 +342,12 @@ export function Settings() {
                     </div>
                   ))}
                 </div>
+              </motion.div>
+            )}
+
+            {activeSection === 'api-keys' && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <ApiKeysPanel />
               </motion.div>
             )}
 
