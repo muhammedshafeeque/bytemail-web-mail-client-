@@ -37,6 +37,11 @@ export async function revokeOtherSessionsHandler(req: Request, res: Response): P
 
 export async function revokeAllSessionsHandler(req: Request, res: Response): Promise<void> {
   await revokeAllSessions(req.user!.email);
-  res.clearCookie('refresh_token', { path: '/api/auth' });
+  res.clearCookie('refresh_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/auth',
+  });
   res.json({ success: true, message: 'Signed out everywhere' });
 }

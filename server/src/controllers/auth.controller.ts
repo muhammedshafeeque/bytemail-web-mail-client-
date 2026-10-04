@@ -46,6 +46,13 @@ const REFRESH_COOKIE = {
   path: '/api/auth',
 };
 
+const CLEAR_REFRESH_COOKIE = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/api/auth',
+};
+
 function requestMeta(req: Request): { userAgent: string; ip: string } {
   return {
     userAgent: req.get('user-agent') || 'Unknown',
@@ -226,7 +233,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
     await clearSession(email, req.user?.sid);
   }
 
-  res.clearCookie('refresh_token', REFRESH_COOKIE);
+  res.clearCookie('refresh_token', CLEAR_REFRESH_COOKIE);
   res.json({ success: true, message: 'Logged out' });
 }
 
